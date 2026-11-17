@@ -1,0 +1,10 @@
+# 2026-11-14 16:08:57
+처음: wexepp=128 EPP=0x80
+debug.wexepp: 128 -> 192
+wexepp=192 → EPP=0xc0 EPP=0xc0 EPP=0xc0
+debug.wexepp: 192 -> 64
+wexepp=64 → EPP=0x40 EPP=0x40 EPP=0x40
+debug.wexepp: 64 -> 128
+wexepp=128 → EPP=0x80 EPP=0x80 EPP=0x80
+검증: 1
+설치 후: wexepp=128 EPP=0x80 | 2026-11-14 16:07:50 previous load did not finish (crash?) -> doing nothing. remove /var/db/turbo-off.pending to retry;2026-11-14 16:09:25 previous load did not finish (crash?) -> doing nothing. remove /var/db/turbo-off.pending to retry;

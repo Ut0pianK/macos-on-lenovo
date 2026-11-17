@@ -1,0 +1,39 @@
+# 2026-11-14 15:24:25 시작
+15:24:26 io(켜기 전) rc=0 0.10s
+debug.wexl1ss: 0 -> 1
+--- SD 리더만 켬
+  00:1c.0 8086:a0bb class 060400 D0 | ASPM 지원 2 켬 2 CLKREQ 0 LTR켬 1 | L1SS 지원 0x1f 켬 0xf
+  02:00.0 1217:8621 class 080501 D0 | ASPM 지원 3 켬 2 CLKREQ 0 LTR켬 1 | L1SS 지원 0x1f 켬 0xf | LTR max 0x1003/0x1003
+  00:1d.0 8086:a0b0 class 060400 D0 | ASPM 지원 2 켬 2 CLKREQ 0 LTR켬 1 | L1SS 지원 0x1f 켬 0x0
+  03:00.0 144d:a808 class 010802 D0 | ASPM 지원 2 켬 2 CLKREQ 0 LTR켬 1 | L1SS 지원 0x1f 켬 0x0 | LTR max 0x1003/0x1003
+L1SS SD 리더(RP04): 켬 | 전 ctl1 포트 0x00000000 장치 0x00000000 → 후 포트 0x40a7780f 장치 0x40a7000f, ctl2 0xb0/0xb0, 공통 0xf
+L1SS NVMe(RP09): 끔 | 전 ctl1 포트 0x00000000 장치 0x00000000 → 후 포트 0x00000000 장치 0x00000000, ctl2 0x0/0x0, 공통 0xf
+debug.wexl1ss: 1 -> 3
+--- NVMe 까지 켬
+  00:1c.0 8086:a0bb class 060400 D0 | ASPM 지원 2 켬 2 CLKREQ 0 LTR켬 1 | L1SS 지원 0x1f 켬 0xf
+  02:00.0 1217:8621 class 080501 D0 | ASPM 지원 3 켬 2 CLKREQ 0 LTR켬 1 | L1SS 지원 0x1f 켬 0xf | LTR max 0x1003/0x1003
+  00:1d.0 8086:a0b0 class 060400 D0 | ASPM 지원 2 켬 2 CLKREQ 0 LTR켬 1 | L1SS 지원 0x1f 켬 0xf
+  03:00.0 144d:a808 class 010802 D0 | ASPM 지원 2 켬 2 CLKREQ 0 LTR켬 1 | L1SS 지원 0x1f 켬 0xf | LTR max 0x1003/0x1003
+L1SS SD 리더(RP04): 켬 | 전 ctl1 포트 0x40a7780f 장치 0x40a7000f → 후 포트 0x40a7780f 장치 0x40a7000f, ctl2 0xb0/0xb0, 공통 0xf
+L1SS NVMe(RP09): 켬 | 전 ctl1 포트 0x00000000 장치 0x00000000 → 후 포트 0x4058280f 장치 0x4058000f, ctl2 0xb0/0xb0, 공통 0xf
+15:24:54 io(쉼 2s 뒤) rc=0 0.07s
+15:25:05 io(쉼 10s 뒤) rc=0 0.08s
+15:25:35 io(쉼 30s 뒤) rc=0 0.09s
+15:26:05 io(쉼 30s 뒤) rc=0 0.08s
+15:26:50 io(쉼 45s 뒤) rc=0 0.08s
+--- 최종
+  00:1c.0 8086:a0bb class 060400 D0 | ASPM 지원 2 켬 2 CLKREQ 0 LTR켬 1 | L1SS 지원 0x1f 켬 0xf
+  02:00.0 1217:8621 class 080501 D0 | ASPM 지원 3 켬 2 CLKREQ 0 LTR켬 1 | L1SS 지원 0x1f 켬 0xf | LTR max 0x1003/0x1003
+  00:1d.0 8086:a0b0 class 060400 D0 | ASPM 지원 2 켬 2 CLKREQ 0 LTR켬 1 | L1SS 지원 0x1f 켬 0xf
+  03:00.0 144d:a808 class 010802 D0 | ASPM 지원 2 켬 2 CLKREQ 0 LTR켬 1 | L1SS 지원 0x1f 켬 0xf | LTR max 0x1003/0x1003
+L1SS SD 리더(RP04): 켬 | 전 ctl1 포트 0x40a7780f 장치 0x40a7000f → 후 포트 0x40a7780f 장치 0x40a7000f, ctl2 0xb0/0xb0, 공통 0xf
+L1SS NVMe(RP09): 켬 | 전 ctl1 포트 0x00000000 장치 0x00000000 → 후 포트 0x4058280f 장치 0x4058000f, ctl2 0xb0/0xb0, 공통 0xf
+2026-11-14 15:23:07.652 Df kernel[0:3cd] (IONVMeFamily) virtual bool IONVMeController::start(IOService *)::816:Successfully initialized NVMe drive 0x100000345
+2026-11-14 15:23:07.652 Df kernel[0:32a] (IOPCIFamily) [PCIe:0 652911384 ns] [childPublished()] child IONVMeController(0x100000345) published
+2026-11-14 15:23:07.652 Df kernel[0:32c] (IOPCIFamily) [PCIe:0 652914657 ns] [childPublished()] child IONVMeBlockStorageDevice(0x10000035f) published
+2026-11-14 15:23:07.862 Df kernel[0:7b] Got boot device = IOService:/AppleACPIPlatformExpert/PC00@0/AppleACPIPCI/RP09@1D/IOPP/PXSX@0/IONVMeController/IONVMeBlockStorageDevice@1/IOB
+2026-11-14 15:23:20.369 Df kernel[0:88d] Found class: IOPCIDevice
+2026-11-14 15:23:20.375 Df kernel[0:8a2] (IOPCIFamily) [PCIe:0 14196183628 ns] IOPCIDevice::ClientCrashed_Impl() for client Apple16X50PCI
+2026-11-14 15:23:20.375 Df kernel[0:8a2] (IOPCIFamily) [PCIe:0 14196189333 ns] kern_return_t IOPCIDevice::ClientCrashed_Impl(IOService *, uint64_t): PCIDriverKit client Apple16X50P
+2026-11-14 15:23:20.375 Df kernel[0:8a2] (IOPCIFamily) [PCIe:0 14196201245 ns] IOPCIDevice::ClientCrashed_Impl() for client Apple16X50PCI done
+# 2026-11-14 15:26:53 끝 (wexl1ss=3)

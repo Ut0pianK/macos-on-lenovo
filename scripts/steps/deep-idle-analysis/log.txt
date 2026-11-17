@@ -1,0 +1,5 @@
+2026-11-14 14:05:29 시작
+Now drawing from 'Battery Power'
+ -InternalBattery-0 (id=7536739)	89%; discharging; 1:44 remaining present: true
+14:07:47 화면 끔 구간 시작
+14:09:53 화면 켬

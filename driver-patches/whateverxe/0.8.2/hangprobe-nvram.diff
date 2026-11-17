@@ -1,0 +1,76 @@
+--- /Users/user/wex-0.8.2-port/kern_xe.cpp.hangprobe-v1	2026-11-17 08:32:04
++++ WhateverXe/kern_xe.cpp	2026-11-17 08:32:41
+@@ -1565,6 +1565,56 @@
+ // logs the render ring, execlist/CSB state and the display state, so the next occurrence shows what the context waits
+ // for. Two samples 20 ms apart tell whether the engine (ACTHD) and the display (frame counter, PSR) are moving.
+ // At most 32 records per boot; the last one is also published as "WhateverXeHangProbe" (u32 values in log order).
++// NVRAM copy of the first records (2026-11-17). IOLog from an OpenCore-injected kext only reaches the dmesg buffer, and
++// that and the registry copy die with the forced power-off that follows a freeze (both recurrences on 2026-11-17 left
++// nothing). Variable "wex-hang": u32 magic 'WEXN', version, record count, values per record, then per record the
++// calendar seconds and the WhateverXeHangProbe values. Written from a thread call (kernel task, outside the accelerator
++// lock) and flushed at once with IONVRAM-FORCESYNCNOW-PROPERTY (handled in IODTNVRAM::setPropertyWithGUIDAndName).
++// At most 4 writes per boot. debug.wexhangtest=1 writes "wex-hang-test" the same way; reading it gives the last result
++// (0 none, 1 written, 2 setProperty failed, 3 no /options).
++static constexpr uint32_t WexHangNvMax = 4, WexHangNvVals = 46;
++static uint32_t wexHangNvBuf[4 + WexHangNvMax * (1 + WexHangNvVals)] {0x4E584557, 1, 0, WexHangNvVals};
++static volatile uint32_t wexHangNvReserved, wexHangNvCount;
++static thread_call_t wexHangNvCall;
++static int wexHangNvResult;
++static void wexHangNvFlush(thread_call_param_t, thread_call_param_t test) {
++	auto opts = IORegistryEntry::fromPath("/options", gIODTPlane);
++	if (!opts) { wexHangNvResult = 3; return; }
++	uint32_t cnt = __atomic_load_n(&wexHangNvCount, __ATOMIC_ACQUIRE); if (cnt > WexHangNvMax) cnt = WexHangNvMax;
++	const char *key = test ? "wex-hang-test" : "wex-hang";
++	clock_sec_t sec = 0; clock_usec_t usec = 0; clock_get_calendar_microtime(&sec, &usec);
++	const uint32_t probe[] {0x54584557, static_cast<uint32_t>(sec)};
++	wexHangNvBuf[2] = cnt;
++	auto data = test ? OSData::withBytes(probe, sizeof(probe))
++		: OSData::withBytes(wexHangNvBuf, static_cast<unsigned int>((4 + cnt * (1 + WexHangNvVals)) * sizeof(uint32_t)));
++	bool ok = false;
++	if (data) {
++		ok = opts->setProperty(key, data); data->release();
++		if (auto name = OSString::withCString(key)) { opts->setProperty("IONVRAM-FORCESYNCNOW-PROPERTY", name); name->release(); }
++	}
++	wexHangNvResult = ok ? 1 : 2;
++	IORegistryEntry::getRegistryRoot()->setProperty("WhateverXeHangProbeNvram", ok);
++	opts->release();
++}
++static void wexHangNvAdd(const uint32_t *v, size_t n) {
++	if (!wexHangNvCall || n != WexHangNvVals) return;
++	const uint32_t slot = __atomic_fetch_add(&wexHangNvReserved, 1, __ATOMIC_RELAXED);
++	if (slot >= WexHangNvMax) return;
++	clock_sec_t sec = 0; clock_usec_t usec = 0; clock_get_calendar_microtime(&sec, &usec);
++	uint32_t *rec = &wexHangNvBuf[4 + slot * (1 + WexHangNvVals)];
++	rec[0] = static_cast<uint32_t>(sec);
++	for (size_t i = 0; i < n; i++) rec[1 + i] = v[i];
++	__atomic_add_fetch(&wexHangNvCount, 1, __ATOMIC_RELEASE);
++	thread_call_enter1(wexHangNvCall, nullptr);
++}
++static int wexHangTestSysctl SYSCTL_HANDLER_ARGS {
++	int v = wexHangNvResult;
++	const int err = sysctl_handle_int(oidp, &v, 0, req);
++	if (err || !req->newptr) return err;
++	if (v == 1 && wexHangNvCall) { wexHangNvResult = 0; thread_call_enter1(wexHangNvCall, reinterpret_cast<thread_call_param_t>(1)); }
++	return 0;
++}
++SYSCTL_PROC(_debug, OID_AUTO, wexhangtest, CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_LOCKED, nullptr, 0, wexHangTestSysctl, "I", "write 1: store a test record in NVRAM variable wex-hang-test; reads the last NVRAM write result");
+ static mach_vm_address_t orgTGLEventTimeout;
+ static volatile uint32_t wexHangProbeCount;
+ static void *wrapTGLEventTimeout(void *em, int idx) {
+@@ -1606,6 +1656,7 @@
+ 	if (auto data = OSData::withBytes(pub, sizeof(pub))) {
+ 		IORegistryEntry::getRegistryRoot()->setProperty("WhateverXeHangProbe", data); data->release();
+ 	}
++	wexHangNvAdd(pub, k);
+ 	return ret;
+ }
+ 
+@@ -13568,6 +13619,8 @@
+ 					KernelPatcher::RouteRequest r[] {{etSym,wrapTGLEventTimeout,orgTGLEventTimeout}};
+ 					ok=patcher.routeMultiple(index,r,arrsize(r),address,size);
+ 					patcher.clearError();
++					if (ok && !wexHangNvCall && (wexHangNvCall=thread_call_allocate(wexHangNvFlush,nullptr)))
++						sysctl_register_oid(&sysctl__debug_wexhangtest);
+ 				}
+ 				IORegistryEntry::getRegistryRoot()->setProperty("WhateverXeHangProbeRouted",ok);
+ 			}

@@ -1,0 +1,17 @@
+2026-11-14 14:09:49 +0900 
+Assertion status system-wide:
+   BackgroundTask                 0
+   ApplePushServiceTask           0
+   UserIsActive                   0
+   PreventUserIdleDisplaySleep    0
+   SoftwareUpdateTask             0
+   PreventSystemSleep             0
+   ExternalMedia                  1
+   PreventUserIdleSystemSleep     0
+   NetworkClientActive            0
+Listed by owning process:
+   pid 115(powerd): [0x0000001100088038] 00:06:43 ExternalMedia named: "com.apple.powermanagement.externalmediamounted"  
+Kernel Assertions: 0x4=USB
+   id=501  level=255 0x4=USB creat= description=com.apple.usb.externaldevice.14a00000 owner=Bluetooth USB Host Controller
+   id=502  level=255 0x4=USB creat= description=com.apple.usb.externaldevice.14600000 owner=Integrated Camera
+   id=503  level=255 0x4=USB creat= description=com.apple.usb.externaldevice.14100000 owner=Cruzer Blade

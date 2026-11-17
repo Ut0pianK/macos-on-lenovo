@@ -1,0 +1,13 @@
+#!/bin/sh
+M=/usr/local/etc/mx450/mode
+case "${1:-}" in
+    '') ;;
+    auto|on|off) echo "$1" > "$M" ;;
+    *) echo "사용법: mx450-policy [auto|on|off]" >&2; exit 64 ;;
+esac
+if grep -qE '^\*' /Library/GPUBundles/nvmtl-allow.txt; then s="제공 중"; else s="숨김"; fi
+echo "모드: $(cat $M 2>/dev/null || echo auto) / 전원: $(pmset -g batt | head -1 | sed -E "s/.*'(.*)'.*/\1/") / MX450: $s (새로 여는 앱부터 적용)"
+n=$(ioreg -c NVAccel -r -l -w0 2>/dev/null | grep -c "class IOAccelDevice2")
+echo "지금 MX450에 연결된 프로세스: ${n}개, 사용률 $(ioreg -c NVAccel -r -d1 -w0 2>/dev/null | grep -oE '"Device Utilization %"=[0-9]+' | cut -d= -f2)%"
+[ -n "${1:-}" ] && echo "(최대 5초 안에 반영됩니다)"
+exit 0

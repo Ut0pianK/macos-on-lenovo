@@ -1,0 +1,975 @@
+
+/System/Library/Kernels/kernel:	file format mach-o 64-bit x86-64
+
+Disassembly of section __TEXT,__text:
+
+ffffff8000405af0 <_xcpm_enable_pstate_ctrs>:
+ffffff8000405f00:      	lahf
+ffffff8000405f01:      	addb	%al, 0xf(%rdx)
+ffffff8000405f04:      	movb	$0x54, %dh
+ffffff8000405f06:      	addb	(%rcx), %ah
+ffffff8000405f08:      	movl	-0x4c(%rbp), %edi
+ffffff8000405f0b:      	movl	-0x34(%rbp), %r14d
+ffffff8000405f0f:      	jmp	0xffffff8000405f40 <_xcpm_enable_pstate_ctrs+0x450>
+ffffff8000405f11:      	cmpl	$0x0, 0x88f52c(%rip) ## 0xffffff8000c95444 <_xcpm_config+0x264>
+ffffff8000405f18:      	movl	0x9fbb7e(%rip), %edx ## 0xffffff8000e01a9c <_xcpm_pkg+0x1c>
+ffffff8000405f1e:      	movl	-0x4c(%rbp), %edi
+ffffff8000405f21:      	leaq	0x9fbb58(%rip), %r8 ## 0xffffff8000e01a80 <_xcpm_pkg>
+ffffff8000405f28:      	movl	-0x34(%rbp), %r14d
+ffffff8000405f2c:      	je	0xffffff8000405f40 <_xcpm_enable_pstate_ctrs+0x450>
+ffffff8000405f2e:      	movzbl	0x87952e(%rip), %esi ## 0xffffff8000c7f463 <_xcpm_qos_table_hsw_ult+0x823>
+ffffff8000405f35:      	movzbl	0x21(%rsi,%r8), %esi
+ffffff8000405f3b:      	cmpl	%esi, %edx
+ffffff8000405f3d:      	cmovbel	%esi, %edx
+ffffff8000405f40:      	cmpl	%r15d, %edx
+ffffff8000405f43:      	je	0xffffff8000405f5a <_xcpm_enable_pstate_ctrs+0x46a>
+ffffff8000405f45:      	movq	-0x40(%rbp), %rdx
+ffffff8000405f49:      	movb	%r15b, 0x21(%rdx,%r8)
+ffffff8000405f4e:      	testb	%r11b, %r11b
+ffffff8000405f51:      	je	0xffffff8000405f5a <_xcpm_enable_pstate_ctrs+0x46a>
+ffffff8000405f53:      	movl	%r15d, 0x9fbb42(%rip) ## 0xffffff8000e01a9c <_xcpm_pkg+0x1c>
+ffffff8000405f5a:      	cmpl	$0x0, -0x68(%rbp)
+ffffff8000405f5e:      	jne	0xffffff8000405f75 <_xcpm_enable_pstate_ctrs+0x485>
+ffffff8000405f60:      	movl	%r12d, %edx
+ffffff8000405f63:      	andl	$0x2, %edx
+ffffff8000405f66:      	orl	%ebx, %edx
+ffffff8000405f68:      	jne	0xffffff8000405f75 <_xcpm_enable_pstate_ctrs+0x485>
+ffffff8000405f6a:      	movq	-0x48(%rbp), %rdx
+ffffff8000405f6e:      	movq	%rdx, 0x88f2db(%rip) ## 0xffffff8000c95250 <_xcpm_config+0x70>
+ffffff8000405f75:      	testl	%edi, %edi
+ffffff8000405f77:      	movq	-0x60(%rbp), %r15
+ffffff8000405f7b:      	je	0xffffff8000405fc3 <_xcpm_enable_pstate_ctrs+0x4d3>
+ffffff8000405f7d:      	cmpl	$0x1, (%rcx)
+ffffff8000405f80:      	jne	0xffffff8000405f92 <_xcpm_enable_pstate_ctrs+0x4a2>
+ffffff8000405f82:      	cmpl	$0x1, 0x8(%rcx)
+ffffff8000405f86:      	jne	0xffffff8000405f92 <_xcpm_enable_pstate_ctrs+0x4a2>
+ffffff8000405f88:      	movzbl	0x9fbb11(%rip), %r10d ## 0xffffff8000e01aa1 <_xcpm_pkg+0x21>
+ffffff8000405f90:      	jmp	0xffffff8000405fb9 <_xcpm_enable_pstate_ctrs+0x4c9>
+ffffff8000405f92:      	cmpl	$0x0, 0x88f4ab(%rip) ## 0xffffff8000c95444 <_xcpm_config+0x264>
+ffffff8000405f99:      	movl	0x9fbafc(%rip), %r10d ## 0xffffff8000e01a9c <_xcpm_pkg+0x1c>
+ffffff8000405fa0:      	je	0xffffff8000405fb9 <_xcpm_enable_pstate_ctrs+0x4c9>
+ffffff8000405fa2:      	movzbl	0x8794ba(%rip), %ecx ## 0xffffff8000c7f463 <_xcpm_qos_table_hsw_ult+0x823>
+ffffff8000405fa9:      	movzbl	0x21(%rcx,%r8), %ecx
+ffffff8000405faf:      	cmpl	%ecx, %r10d
+ffffff8000405fb2:      	cmoval	%r10d, %ecx
+ffffff8000405fb6:      	movl	%ecx, %r10d
+ffffff8000405fb9:      	movzbl	%r11b, %ecx
+ffffff8000405fbd:      	xorl	$0x3, %ecx
+ffffff8000405fc0:      	orl	%ecx, %r12d
+ffffff8000405fc3:      	andb	-0x36(%rbp), %r9b
+ffffff8000405fc7:      	andb	-0x35(%rbp), %r13b
+ffffff8000405fcb:      	movq	0x9fbb36(%rip), %r8 ## 0xffffff8000e01b08 <_xcpm_frequency_vector>
+ffffff8000405fd2:      	movl	%r10d, %ecx
+ffffff8000405fd5:      	imulq	$0x190, %rcx, %rcx ## imm = 0x190
+ffffff8000405fdc:      	movl	(%r8,%rcx), %edi
+ffffff8000405fe0:      	movl	0x9fbab2(%rip), %esi ## 0xffffff8000e01a98 <_xcpm_pkg+0x18>
+ffffff8000405fe6:      	movl	0x9fbaa8(%rip), %ecx ## 0xffffff8000e01a94 <_xcpm_pkg+0x14>
+ffffff8000405fec:      	cmpl	%esi, %edi
+ffffff8000405fee:      	jb	0xffffff80004068c2 <_xcpm_enable_pstate_ctrs+0xdd2>
+ffffff8000405ff4:      	orb	%r9b, %r13b
+ffffff8000405ff7:      	testl	%ecx, %ecx
+ffffff8000405ff9:      	je	0xffffff8000406003 <_xcpm_enable_pstate_ctrs+0x513>
+ffffff8000405ffb:      	cmpl	%ecx, %edi
+ffffff8000405ffd:      	ja	0xffffff80004068bb <_xcpm_enable_pstate_ctrs+0xdcb>
+ffffff8000406003:      	movl	0xc4(%r15), %edx
+ffffff800040600a:      	movl	0xcc(%r15), %r9d
+ffffff8000406011:      	movl	%r9d, 0x8c(%r15)
+ffffff8000406018:      	movl	%edx, 0x90(%r15)
+ffffff800040601f:      	testl	%ebx, %ebx
+ffffff8000406021:      	setne	%dl
+ffffff8000406024:      	xorb	$0x1, %r13b
+ffffff8000406028:      	orb	%dl, %r13b
+ffffff800040602b:      	movq	-0x58(%rbp), %rdx
+ffffff800040602f:      	jne	0xffffff80004060e8 <_xcpm_enable_pstate_ctrs+0x5f8>
+ffffff8000406035:      	cmpl	%edx, %r14d
+ffffff8000406038:      	je	0xffffff80004060e8 <_xcpm_enable_pstate_ctrs+0x5f8>
+ffffff800040603e:      	movl	%r14d, %edx
+ffffff8000406041:      	imulq	$0x190, %rdx, %rdx ## imm = 0x190
+ffffff8000406048:      	imulq	$0x3e8, 0x8(%r8,%rdx), %rbx ## imm = 0x3E8
+ffffff8000406051:      	cmpq	$0x0, -0x40(%rbp)
+ffffff8000406056:      	je	0xffffff80004060c3 <_xcpm_enable_pstate_ctrs+0x5d3>
+ffffff8000406058:      	movq	%r10, %r13
+ffffff800040605b:      	movl	0xc(%rax), %r9d
+ffffff800040605f:      	cmpl	%r9d, %r14d
+ffffff8000406062:      	movl	%r9d, %edx
+ffffff8000406065:      	cmoval	%r14d, %edx
+ffffff8000406069:      	movl	0x10(%rax), %r10d
+ffffff800040606d:      	cmpl	%r10d, %edx
+ffffff8000406070:      	cmovael	%r10d, %edx
+ffffff8000406074:      	movl	%r14d, %r10d
+ffffff8000406077:      	cmoval	%edx, %r14d
+ffffff800040607b:      	cmpl	%r9d, %r10d
+ffffff800040607e:      	cmovbl	%edx, %r14d
+ffffff8000406082:      	movl	0x14(%rax,%rdx,4), %eax
+ffffff8000406086:      	cmpl	$0x0, 0x9fc62b(%rip) ## 0xffffff8000e026b8 <_xcpm_assert_enable>
+ffffff800040608d:      	jne	0xffffff800040692b <_xcpm_enable_pstate_ctrs+0xe3b>
+ffffff8000406093:      	cmpl	%edx, %r10d
+ffffff8000406096:      	je	0xffffff80004060a8 <_xcpm_enable_pstate_ctrs+0x5b8>
+ffffff8000406098:      	imulq	$0x190, %rdx, %r9 ## imm = 0x190
+ffffff800040609f:      	imulq	$0x3e8, 0x8(%r8,%r9), %rbx ## imm = 0x3E8
+ffffff80004060a8:      	imulq	%rax, %rbx
+ffffff80004060ac:      	shrq	$0x7, %rbx
+ffffff80004060b0:      	testl	$0xfffffff7, 0xa544d6(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff80004060ba:      	jne	0xffffff8000406950 <_xcpm_enable_pstate_ctrs+0xe60>
+ffffff80004060c0:      	movq	%r13, %r10
+ffffff80004060c3:      	movl	%r14d, 0x9c(%r15)
+ffffff80004060ca:      	addq	-0x48(%rbp), %rbx
+ffffff80004060ce:      	movq	%rbx, 0x2e0(%r15)
+ffffff80004060d5:      	movl	%r14d, 0x88(%r15)
+ffffff80004060dc:      	movl	%r14d, %eax
+ffffff80004060df:      	imulq	$0x190, %rax, %rax ## imm = 0x190
+ffffff80004060e6:      	jmp	0xffffff80004060f3 <_xcpm_enable_pstate_ctrs+0x603>
+ffffff80004060e8:      	movl	%edx, 0x88(%r15)
+ffffff80004060ef:      	movq	-0x78(%rbp), %rax
+ffffff80004060f3:      	movl	(%r8,%rax), %eax
+ffffff80004060f7:      	cmpl	%esi, %eax
+ffffff80004060f9:      	jb	0xffffff80004068d0 <_xcpm_enable_pstate_ctrs+0xde0>
+ffffff80004060ff:      	testl	%ecx, %ecx
+ffffff8000406101:      	je	0xffffff800040610b <_xcpm_enable_pstate_ctrs+0x61b>
+ffffff8000406103:      	cmpl	%ecx, %eax
+ffffff8000406105:      	ja	0xffffff80004068c9 <_xcpm_enable_pstate_ctrs+0xdd9>
+ffffff800040610b:      	movl	%eax, 0x84(%r15)
+ffffff8000406112:      	movl	%r12d, 0xb8(%r15)
+ffffff8000406119:      	testb	$0x4, 0x88f330(%rip) ## 0xffffff8000c95450 <_xcpm_config+0x270>
+ffffff8000406120:      	sete	%al
+ffffff8000406123:      	orb	%al, %r11b
+ffffff8000406126:      	jne	0xffffff8000406154 <_xcpm_enable_pstate_ctrs+0x664>
+ffffff8000406128:      	movq	-0x48(%rbp), %rax
+ffffff800040612c:      	subq	0x88f325(%rip), %rax ## 0xffffff8000c95458 <_xcpm_config+0x278>
+ffffff8000406133:      	cmpq	%rax, 0x88f11e(%rip) ## 0xffffff8000c95258 <_xcpm_config+0x78>
+ffffff800040613a:      	jbe	0xffffff8000406154 <_xcpm_enable_pstate_ctrs+0x664>
+ffffff800040613c:      	movl	$0x28, 0xb8(%r15)
+ffffff8000406147:      	movq	$0x1, 0x88f30e(%rip) ## 0xffffff8000c95460 <_xcpm_config+0x280>
+ffffff8000406152:      	jmp	0xffffff8000406175 <_xcpm_enable_pstate_ctrs+0x685>
+ffffff8000406154:      	testl	%r12d, %r12d
+ffffff8000406157:      	je	0xffffff8000406206 <_xcpm_enable_pstate_ctrs+0x716>
+ffffff800040615d:      	testb	$0x2, %r12b
+ffffff8000406161:      	je	0xffffff8000406175 <_xcpm_enable_pstate_ctrs+0x685>
+ffffff8000406163:      	movl	%r10d, 0x9fb932(%rip) ## 0xffffff8000e01a9c <_xcpm_pkg+0x1c>
+ffffff800040616a:      	movq	-0x48(%rbp), %rax
+ffffff800040616e:      	movq	%rax, 0x88f0db(%rip) ## 0xffffff8000c95250 <_xcpm_config+0x70>
+ffffff8000406175:      	movq	-0x48(%rbp), %rax
+ffffff8000406179:      	movq	%rax, 0xb0(%r15)
+ffffff8000406180:      	callq	0xffffff8000406c80 <_xcpm_enable_pstate_ctrs+0x1190>
+ffffff8000406185:      	jmp	0xffffff8000406216 <_xcpm_enable_pstate_ctrs+0x726>
+ffffff800040618a:      	cmpl	%r8d, %ecx
+ffffff800040618d:      	sete	%al
+ffffff8000406190:      	movl	%r11d, %ecx
+ffffff8000406193:      	xorb	$0x1, %cl
+ffffff8000406196:      	xorl	%r10d, %r10d
+ffffff8000406199:      	orb	%al, %cl
+ffffff800040619b:      	jne	0xffffff80004061cf <_xcpm_enable_pstate_ctrs+0x6df>
+ffffff800040619d:      	cmpl	$0x0, -0x2c(%rbp)
+ffffff80004061a1:      	je	0xffffff80004061c8 <_xcpm_enable_pstate_ctrs+0x6d8>
+ffffff80004061a3:      	cmpl	$0x0, 0x88f252(%rip) ## 0xffffff8000c953fc <_xcpm_config+0x21c>
+ffffff80004061aa:      	jne	0xffffff8000406566 <_xcpm_enable_pstate_ctrs+0xa76>
+ffffff80004061b0:      	movq	-0x48(%rbp), %rax
+ffffff80004061b4:      	subq	0x88f095(%rip), %rax ## 0xffffff8000c95250 <_xcpm_config+0x70>
+ffffff80004061bb:      	cmpq	0x88f086(%rip), %rax ## 0xffffff8000c95248 <_xcpm_config+0x68>
+ffffff80004061c2:      	jb	0xffffff8000406566 <_xcpm_enable_pstate_ctrs+0xa76>
+ffffff80004061c8:      	orl	$0x2, %r12d
+ffffff80004061cc:      	movl	%r8d, %r10d
+ffffff80004061cf:      	cmpl	$0x0, -0x2c(%rbp)
+ffffff80004061d3:      	jne	0xffffff8000406579 <_xcpm_enable_pstate_ctrs+0xa89>
+ffffff80004061d9:      	movl	0x88f271(%rip), %eax ## 0xffffff8000c95450 <_xcpm_config+0x270>
+ffffff80004061df:      	andl	$0x2, %eax
+ffffff80004061e2:      	je	0xffffff8000406579 <_xcpm_enable_pstate_ctrs+0xa89>
+ffffff80004061e8:      	testb	%r11b, %r11b
+ffffff80004061eb:      	je	0xffffff8000406468 <_xcpm_enable_pstate_ctrs+0x978>
+ffffff80004061f1:      	orl	$0x2, %r12d
+ffffff80004061f5:      	movl	%r8d, -0x34(%rbp)
+ffffff80004061f9:      	movl	%r8d, %r15d
+ffffff80004061fc:      	movl	%ebx, %eax
+ffffff80004061fe:      	movl	%r8d, %r10d
+ffffff8000406201:      	jmp	0xffffff8000406582 <_xcpm_enable_pstate_ctrs+0xa92>
+ffffff8000406206:      	testl	$0xfffffff7, 0xa54380(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff8000406210:      	jne	0xffffff800040698f <_xcpm_enable_pstate_ctrs+0xe9f>
+ffffff8000406216:      	testb	$0x8, 0x88f233(%rip) ## 0xffffff8000c95450 <_xcpm_config+0x270>
+ffffff800040621d:      	je	0xffffff8000406501 <_xcpm_enable_pstate_ctrs+0xa11>
+ffffff8000406223:      	cmpq	$0x1, 0x88f255(%rip) ## 0xffffff8000c95480 <_xcpm_config+0x2a0>
+ffffff800040622b:      	jne	0xffffff8000406501 <_xcpm_enable_pstate_ctrs+0xa11>
+ffffff8000406231:      	movl	0x88f251(%rip), %eax ## 0xffffff8000c95488 <_xcpm_config+0x2a8>
+ffffff8000406237:      	testl	%eax, %eax
+ffffff8000406239:      	je	0xffffff80004062a3 <_xcpm_enable_pstate_ctrs+0x7b3>
+ffffff800040623b:      	xorl	%ecx, %ecx
+ffffff800040623d:      	movq	-0x48(%rbp), %rdx
+ffffff8000406241:      	subq	0x88f010(%rip), %rdx ## 0xffffff8000c95258 <_xcpm_config+0x78>
+ffffff8000406248:      	cmovaeq	%rdx, %rcx
+ffffff800040624c:      	movq	0x88f215(%rip), %rsi ## 0xffffff8000c95468 <_xcpm_config+0x288>
+ffffff8000406253:      	movl	$0x1, %edx
+ffffff8000406258:      	cmpq	%rsi, %rcx
+ffffff800040625b:      	jbe	0xffffff8000406284 <_xcpm_enable_pstate_ctrs+0x794>
+ffffff800040625d:      	movl	$0x1, 0x94(%r15)
+ffffff8000406268:      	movq	$0x2, 0x88f20d(%rip) ## 0xffffff8000c95480 <_xcpm_config+0x2a0>
+ffffff8000406273:      	movl	$0x0, 0x88f20b(%rip) ## 0xffffff8000c95488 <_xcpm_config+0x2a8>
+ffffff800040627d:      	movl	$0x2, %edx
+ffffff8000406282:      	xorl	%eax, %eax
+ffffff8000406284:      	xorl	%r8d, %r8d
+ffffff8000406287:      	cmpq	%rsi, %rcx
+ffffff800040628a:      	seta	%r8b
+ffffff800040628e:      	movslq	%eax, %rsi
+ffffff8000406291:      	testl	$0xfffffff7, 0xa542f5(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff800040629b:      	je	0xffffff8000406501 <_xcpm_enable_pstate_ctrs+0xa11>
+ffffff80004062a1:      	jmp	0xffffff80004062e0 <_xcpm_enable_pstate_ctrs+0x7f0>
+ffffff80004062a3:      	movl	$0x1, 0x94(%r15)
+ffffff80004062ae:      	movq	$0x2, 0x88f1c7(%rip) ## 0xffffff8000c95480 <_xcpm_config+0x2a0>
+ffffff80004062b9:      	movl	$0x1, 0x88f1c5(%rip) ## 0xffffff8000c95488 <_xcpm_config+0x2a8>
+ffffff80004062c3:      	movl	$0x1, %esi
+ffffff80004062c8:      	movl	$0x2, %edx
+ffffff80004062cd:      	xorl	%r8d, %r8d
+ffffff80004062d0:      	testl	$0xfffffff7, 0xa542b6(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff80004062da:      	je	0xffffff8000406501 <_xcpm_enable_pstate_ctrs+0xa11>
+ffffff80004062e0:      	movq	0x88f189(%rip), %rcx ## 0xffffff8000c95470 <_xcpm_config+0x290>
+ffffff80004062e7:      	movl	$0x53102ac, %edi ## imm = 0x53102AC
+ffffff80004062ec:      	jmp	0xffffff80004069c3 <_xcpm_enable_pstate_ctrs+0xed3>
+ffffff80004062f1:      	cmpl	%r8d, %r15d
+ffffff80004062f4:      	jbe	0xffffff80004063b9 <_xcpm_enable_pstate_ctrs+0x8c9>
+ffffff80004062fa:      	xorl	%ecx, %ecx
+ffffff80004062fc:      	cmpl	$0x1, %r10d
+ffffff8000406300:      	sete	%cl
+ffffff8000406303:      	orl	%ecx, %edx
+ffffff8000406305:      	xorl	%r10d, %r10d
+ffffff8000406308:      	movl	%r15d, -0x34(%rbp)
+ffffff800040630c:      	movl	%edx, %r12d
+ffffff800040630f:      	testl	$0xfffffff7, 0xa54277(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff8000406319:      	je	0xffffff8000405edf <_xcpm_enable_pstate_ctrs+0x3ef>
+ffffff800040631f:      	jmp	0xffffff8000406595 <_xcpm_enable_pstate_ctrs+0xaa5>
+ffffff8000406324:      	movl	%edx, %ecx
+ffffff8000406326:      	andl	$0x7ffffffe, %ecx ## imm = 0x7FFFFFFE
+ffffff800040632c:      	movb	$-0x1, %r14b
+ffffff800040632f:      	movl	$0xffffffff, %r13d ## imm = 0xFFFFFFFF
+ffffff8000406335:      	leaq	0x9fca04(%rip), %rsi ## 0xffffff8000e02d40 <_xcpm_cpus+0x440>
+ffffff800040633c:      	xorl	%edi, %edi
+ffffff800040633e:      	xorl	%r8d, %r8d
+ffffff8000406341:      	xorl	%r12d, %r12d
+ffffff8000406344:      	jmp	0xffffff8000406367 <_xcpm_enable_pstate_ctrs+0x877>
+ffffff8000406346:      	nopw	%cs:(%rax,%rax)
+ffffff8000406350:      	addq	$0x2, %r8
+ffffff8000406354:      	addq	$0x700, %rsi    ## imm = 0x700
+ffffff800040635b:      	addl	$0x2, %edi
+ffffff800040635e:      	cmpq	%rcx, %r8
+ffffff8000406361:      	je	0xffffff8000405d32 <_xcpm_enable_pstate_ctrs+0x242>
+ffffff8000406367:      	movl	-0x3bc(%rsi), %r9d
+ffffff800040636e:      	cmpl	%r12d, %r9d
+ffffff8000406371:      	cmoval	%r9d, %r12d
+ffffff8000406375:      	cmoval	%edi, %r13d
+ffffff8000406379:      	testl	%eax, %eax
+ffffff800040637b:      	je	0xffffff800040638f <_xcpm_enable_pstate_ctrs+0x89f>
+ffffff800040637d:      	movl	-0x380(%rsi), %r9d
+ffffff8000406384:      	movzbl	%r14b, %r14d
+ffffff8000406388:      	cmpb	%r14b, %r9b
+ffffff800040638b:      	cmovbl	%r9d, %r14d
+ffffff800040638f:      	movl	%r8d, %r9d
+ffffff8000406392:      	orl	$0x1, %r9d
+ffffff8000406396:      	movl	-0x3c(%rsi), %r10d
+ffffff800040639a:      	cmpl	%r12d, %r10d
+ffffff800040639d:      	cmoval	%r10d, %r12d
+ffffff80004063a1:      	cmoval	%r9d, %r13d
+ffffff80004063a5:      	testl	%eax, %eax
+ffffff80004063a7:      	je	0xffffff8000406350 <_xcpm_enable_pstate_ctrs+0x860>
+ffffff80004063a9:      	movl	(%rsi), %r9d
+ffffff80004063ac:      	movzbl	%r14b, %r14d
+ffffff80004063b0:      	cmpb	%r14b, %r9b
+ffffff80004063b3:      	cmovbl	%r9d, %r14d
+ffffff80004063b7:      	jmp	0xffffff8000406350 <_xcpm_enable_pstate_ctrs+0x860>
+ffffff80004063b9:      	setb	%cl
+ffffff80004063bc:      	andb	%r11b, %cl
+ffffff80004063bf:      	cmpb	$0x1, %cl
+ffffff80004063c2:      	jne	0xffffff80004065da <_xcpm_enable_pstate_ctrs+0xaea>
+ffffff80004063c8:      	orl	$0x2, %r12d
+ffffff80004063cc:      	movl	%r8d, -0x34(%rbp)
+ffffff80004063d0:      	movl	%r8d, %r15d
+ffffff80004063d3:      	movl	%r8d, %r10d
+ffffff80004063d6:      	testl	$0xfffffff7, 0xa541b0(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff80004063e0:      	je	0xffffff8000405edf <_xcpm_enable_pstate_ctrs+0x3ef>
+ffffff80004063e6:      	jmp	0xffffff8000406595 <_xcpm_enable_pstate_ctrs+0xaa5>
+ffffff80004063eb:      	testl	%ebx, %ebx
+ffffff80004063ed:      	je	0xffffff8000406417 <_xcpm_enable_pstate_ctrs+0x927>
+ffffff80004063ef:      	cmpl	$0x0, 0x9fc2c2(%rip) ## 0xffffff8000e026b8 <_xcpm_assert_enable>
+ffffff80004063f6:      	je	0xffffff80004064a0 <_xcpm_enable_pstate_ctrs+0x9b0>
+ffffff80004063fc:      	cmpl	$0x0, 0x9fb82d(%rip) ## 0xffffff8000e01c30 <_xcpm_hwp_enabled>
+ffffff8000406403:      	je	0xffffff800040645a <_xcpm_enable_pstate_ctrs+0x96a>
+ffffff8000406405:      	cmpl	$0x0, 0x88efec(%rip) ## 0xffffff8000c953f8 <_xcpm_config+0x218>
+ffffff800040640c:      	je	0xffffff8000406471 <_xcpm_enable_pstate_ctrs+0x981>
+ffffff800040640e:      	movl	$0x772, %ecx    ## imm = 0x772
+ffffff8000406413:      	rdmsr
+ffffff8000406415:      	jmp	0xffffff8000406478 <_xcpm_enable_pstate_ctrs+0x988>
+ffffff8000406417:      	testl	$0xfffffff7, 0xa5416f(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff8000406421:      	jne	0xffffff80004069f7 <_xcpm_enable_pstate_ctrs+0xf07>
+ffffff8000406427:      	cmpl	$0x0, 0x9fc28a(%rip) ## 0xffffff8000e026b8 <_xcpm_assert_enable>
+ffffff800040642e:      	je	0xffffff8000406216 <_xcpm_enable_pstate_ctrs+0x726>
+ffffff8000406434:      	cmpl	$0x0, 0x9fb7f5(%rip) ## 0xffffff8000e01c30 <_xcpm_hwp_enabled>
+ffffff800040643b:      	je	0xffffff8000406794 <_xcpm_enable_pstate_ctrs+0xca4>
+ffffff8000406441:      	cmpl	$0x0, 0x88efb0(%rip) ## 0xffffff8000c953f8 <_xcpm_config+0x218>
+ffffff8000406448:      	je	0xffffff80004067a2 <_xcpm_enable_pstate_ctrs+0xcb2>
+ffffff800040644e:      	movl	$0x772, %ecx    ## imm = 0x772
+ffffff8000406453:      	rdmsr
+ffffff8000406455:      	jmp	0xffffff80004067a9 <_xcpm_enable_pstate_ctrs+0xcb9>
+ffffff800040645a:      	movl	$0x199, %ecx    ## imm = 0x199
+ffffff800040645f:      	rdmsr
+ffffff8000406461:      	movl	$0x8, %ecx
+ffffff8000406466:      	jmp	0xffffff800040647d <_xcpm_enable_pstate_ctrs+0x98d>
+ffffff8000406468:      	orl	$0x1, %r12d
+ffffff800040646c:      	jmp	0xffffff8000406579 <_xcpm_enable_pstate_ctrs+0xa89>
+ffffff8000406471:      	movl	$0x774, %ecx    ## imm = 0x774
+ffffff8000406476:      	rdmsr
+ffffff8000406478:      	movl	$0x10, %ecx
+ffffff800040647d:      	shrl	%cl, %eax
+ffffff800040647f:      	movzbl	%al, %eax
+ffffff8000406482:      	cmpl	0x9fb608(%rip), %eax ## 0xffffff8000e01a90 <_xcpm_pkg+0x10>
+ffffff8000406488:      	je	0xffffff80004064a0 <_xcpm_enable_pstate_ctrs+0x9b0>
+ffffff800040648a:      	cmpl	$0x0, 0x88edff(%rip) ## 0xffffff8000c95290 <_xcpm_config+0xb0>
+ffffff8000406491:      	jne	0xffffff80004064a0 <_xcpm_enable_pstate_ctrs+0x9b0>
+ffffff8000406493:      	cmpl	$0x0, 0x88edfa(%rip) ## 0xffffff8000c95294 <_xcpm_config+0xb4>
+ffffff800040649a:      	je	0xffffff80004069cd <_xcpm_enable_pstate_ctrs+0xedd>
+ffffff80004064a0:      	movq	-0x48(%rbp), %rsi
+ffffff80004064a4:      	movl	%r13d, %eax
+ffffff80004064a7:      	imulq	$0x380, %rax, %rax ## imm = 0x380
+ffffff80004064ae:      	movl	0x9c(%rax,%rdi), %eax
+ffffff80004064b5:      	movl	%eax, 0x9fb5e1(%rip) ## 0xffffff8000e01a9c <_xcpm_pkg+0x1c>
+ffffff80004064bb:      	movb	$0x1, %cl
+ffffff80004064bd:      	subq	0x88ed8c(%rip), %rsi ## 0xffffff8000c95250 <_xcpm_config+0x70>
+ffffff80004064c4:      	cmpl	$0x0, 0x88ef31(%rip) ## 0xffffff8000c953fc <_xcpm_config+0x21c>
+ffffff80004064cb:      	jne	0xffffff80004064e4 <_xcpm_enable_pstate_ctrs+0x9f4>
+ffffff80004064cd:      	cmpl	$0x0, 0x88eed4(%rip) ## 0xffffff8000c953a8 <_xcpm_config+0x1c8>
+ffffff80004064d4:      	setne	%dl
+ffffff80004064d7:      	cmpq	$0x0, 0x88ef41(%rip) ## 0xffffff8000c95420 <_xcpm_config+0x240>
+ffffff80004064df:      	setne	%cl
+ffffff80004064e2:      	andb	%dl, %cl
+ffffff80004064e4:      	testl	%r11d, %r11d
+ffffff80004064e7:      	je	0xffffff800040651b <_xcpm_enable_pstate_ctrs+0xa2b>
+ffffff80004064e9:      	testb	%cl, %cl
+ffffff80004064eb:      	je	0xffffff800040651b <_xcpm_enable_pstate_ctrs+0xa2b>
+ffffff80004064ed:      	testl	%eax, %eax
+ffffff80004064ef:      	jne	0xffffff800040651b <_xcpm_enable_pstate_ctrs+0xa2b>
+ffffff80004064f1:      	testl	$0xfffffff7, 0xa54095(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff80004064fb:      	jne	0xffffff80004069b2 <_xcpm_enable_pstate_ctrs+0xec2>
+ffffff8000406501:      	leaq	0x9fb578(%rip), %rdi ## 0xffffff8000e01a80 <_xcpm_pkg>
+ffffff8000406508:      	addq	$0x58, %rsp
+ffffff800040650c:      	popq	%rbx
+ffffff800040650d:      	popq	%r12
+ffffff800040650f:      	popq	%r13
+ffffff8000406511:      	popq	%r14
+ffffff8000406513:      	popq	%r15
+ffffff8000406515:      	popq	%rbp
+ffffff8000406516:      	jmp	0xffffff800028c900 <_lck_ticket_unlock>
+ffffff800040651b:      	movq	0x88ed26(%rip), %rax ## 0xffffff8000c95248 <_xcpm_config+0x68>
+ffffff8000406522:      	cmpq	%rax, %rsi
+ffffff8000406525:      	jae	0xffffff800040662f <_xcpm_enable_pstate_ctrs+0xb3f>
+ffffff800040652b:      	testl	%r11d, %r11d
+ffffff800040652e:      	je	0xffffff80004065e2 <_xcpm_enable_pstate_ctrs+0xaf2>
+ffffff8000406534:      	cmpl	$0x0, 0x88ed55(%rip) ## 0xffffff8000c95290 <_xcpm_config+0xb0>
+ffffff800040653b:      	je	0xffffff800040662f <_xcpm_enable_pstate_ctrs+0xb3f>
+ffffff8000406541:      	testl	$0xfffffff7, 0xa54045(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff800040654b:      	je	0xffffff8000406501 <_xcpm_enable_pstate_ctrs+0xa11>
+ffffff800040654d:      	movl	0x88ed25(%rip), %ecx ## 0xffffff8000c95278 <_xcpm_config+0x98>
+ffffff8000406553:      	movl	0x88ed2a(%rip), %r8d ## 0xffffff8000c95284 <_xcpm_config+0xa4>
+ffffff800040655a:      	movl	$0x5310224, %edi ## imm = 0x5310224
+ffffff800040655f:      	xorl	%edx, %edx
+ffffff8000406561:      	jmp	0xffffff80004069c3 <_xcpm_enable_pstate_ctrs+0xed3>
+ffffff8000406566:      	testl	$0xfffffff7, 0xa54020(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff8000406570:      	jne	0xffffff8000406a7f <_xcpm_enable_pstate_ctrs+0xf8f>
+ffffff8000406576:      	xorl	%r10d, %r10d
+ffffff8000406579:      	movl	%r8d, -0x34(%rbp)
+ffffff800040657d:      	movl	%r8d, %r15d
+ffffff8000406580:      	movl	%ebx, %eax
+ffffff8000406582:      	movl	-0x2c(%rbp), %ebx
+ffffff8000406585:      	testl	$0xfffffff7, 0xa54001(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff800040658f:      	je	0xffffff8000405edf <_xcpm_enable_pstate_ctrs+0x3ef>
+ffffff8000406595:      	movl	%r12d, %esi
+ffffff8000406598:      	movq	0x9fb569(%rip), %rcx ## 0xffffff8000e01b08 <_xcpm_frequency_vector>
+ffffff800040659f:      	movl	-0x34(%rbp), %edx
+ffffff80004065a2:      	imulq	$0x190, %rdx, %rdx ## imm = 0x190
+ffffff80004065a9:      	movl	(%rcx,%rdx), %edx
+ffffff80004065ac:      	movl	%r15d, %ecx
+ffffff80004065af:      	movslq	%eax, %r8
+ffffff80004065b2:      	movl	$0x53102a8, %edi ## imm = 0x53102A8
+ffffff80004065b7:      	movl	%r11d, -0x64(%rbp)
+ffffff80004065bb:      	movq	%r10, -0x70(%rbp)
+ffffff80004065bf:      	movb	%r9b, -0x2d(%rbp)
+ffffff80004065c3:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff80004065c8:      	movzbl	-0x2d(%rbp), %r9d
+ffffff80004065cd:      	movq	-0x70(%rbp), %r10
+ffffff80004065d1:      	movl	-0x64(%rbp), %r11d
+ffffff80004065d5:      	jmp	0xffffff8000405edf <_xcpm_enable_pstate_ctrs+0x3ef>
+ffffff80004065da:      	xorl	%r10d, %r10d
+ffffff80004065dd:      	jmp	0xffffff8000405ecb <_xcpm_enable_pstate_ctrs+0x3db>
+ffffff80004065e2:      	cmpl	$0x0, -0x40(%rbp)
+ffffff80004065e6:      	je	0xffffff800040662f <_xcpm_enable_pstate_ctrs+0xb3f>
+ffffff80004065e8:      	cmpl	$0x0, 0x88eca9(%rip) ## 0xffffff8000c95298 <_xcpm_config+0xb8>
+ffffff80004065ef:      	je	0xffffff800040662f <_xcpm_enable_pstate_ctrs+0xb3f>
+ffffff80004065f1:      	cmpl	0x9fb498(%rip), %r12d ## 0xffffff8000e01a90 <_xcpm_pkg+0x10>
+ffffff80004065f8:      	jae	0xffffff800040662f <_xcpm_enable_pstate_ctrs+0xb3f>
+ffffff80004065fa:      	cmpl	$0x0, 0x88ec93(%rip) ## 0xffffff8000c95294 <_xcpm_config+0xb4>
+ffffff8000406601:      	je	0xffffff800040662f <_xcpm_enable_pstate_ctrs+0xb3f>
+ffffff8000406603:      	testl	$0xfffffff7, 0xa53f83(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff800040660d:      	je	0xffffff8000406501 <_xcpm_enable_pstate_ctrs+0xa11>
+ffffff8000406613:      	movl	0x88ec5f(%rip), %ecx ## 0xffffff8000c95278 <_xcpm_config+0x98>
+ffffff8000406619:      	movl	0x88ec64(%rip), %r8d ## 0xffffff8000c95284 <_xcpm_config+0xa4>
+ffffff8000406620:      	movl	$0x1, %edx
+ffffff8000406625:      	movl	$0x5310224, %edi ## imm = 0x5310224
+ffffff800040662a:      	jmp	0xffffff80004069c3 <_xcpm_enable_pstate_ctrs+0xed3>
+ffffff800040662f:      	cmpb	$0x1, 0xab483e(%rip) ## 0xffffff8000ebae74
+ffffff8000406636:      	jne	0xffffff8000406682 <_xcpm_enable_pstate_ctrs+0xb92>
+ffffff8000406638:      	lfence
+ffffff800040663b:      	rdtsc
+ffffff800040663d:      	shlq	$0x20, %rdx
+ffffff8000406641:      	orq	%rax, %rdx
+ffffff8000406644:      	movq	0x9fb4b5(%rip), %rax ## 0xffffff8000e01b00 <_xcpm_last_pstate_time>
+ffffff800040664b:      	movq	%rdx, 0x9fb4ae(%rip) ## 0xffffff8000e01b00 <_xcpm_last_pstate_time>
+ffffff8000406652:      	movl	0x9fb620(%rip), %ecx ## 0xffffff8000e01c78 <_xcpm_pst_metadata+0x38>
+ffffff8000406658:      	subl	0x9fb432(%rip), %ecx ## 0xffffff8000e01a90 <_xcpm_pkg+0x10>
+ffffff800040665e:      	cmpl	$0x0, 0x9fc053(%rip) ## 0xffffff8000e026b8 <_xcpm_assert_enable>
+ffffff8000406665:      	jne	0xffffff8000406a27 <_xcpm_enable_pstate_ctrs+0xf37>
+ffffff800040666b:      	subq	%rax, %rdx
+ffffff800040666e:      	movl	%ecx, %eax
+ffffff8000406670:      	leaq	0x9fc069(%rip), %rcx ## 0xffffff8000e026e0 <_xcpm_pstate_ctrs>
+ffffff8000406677:      	addq	%rdx, (%rcx,%rax,8)
+ffffff800040667b:      	movq	0x88ebc6(%rip), %rax ## 0xffffff8000c95248 <_xcpm_config+0x68>
+ffffff8000406682:      	movq	-0x48(%rbp), %rcx
+ffffff8000406686:      	movq	%rcx, 0x88ebc3(%rip) ## 0xffffff8000c95250 <_xcpm_config+0x70>
+ffffff800040668d:      	cmpq	%rax, %rsi
+ffffff8000406690:      	jae	0xffffff800040669c <_xcpm_enable_pstate_ctrs+0xbac>
+ffffff8000406692:      	incl	0x88ebe0(%rip)  ## 0xffffff8000c95278 <_xcpm_config+0x98>
+ffffff8000406698:      	xorl	%eax, %eax
+ffffff800040669a:      	jmp	0xffffff80004066a4 <_xcpm_enable_pstate_ctrs+0xbb4>
+ffffff800040669c:      	movl	0x88ebe2(%rip), %eax ## 0xffffff8000c95284 <_xcpm_config+0xa4>
+ffffff80004066a2:      	incl	%eax
+ffffff80004066a4:      	movl	%eax, 0x88ebda(%rip) ## 0xffffff8000c95284 <_xcpm_config+0xa4>
+ffffff80004066aa:      	cmpl	$0x0, 0x88ebdf(%rip) ## 0xffffff8000c95290 <_xcpm_config+0xb0>
+ffffff80004066b1:      	je	0xffffff80004066ef <_xcpm_enable_pstate_ctrs+0xbff>
+ffffff80004066b3:      	cmpl	0x88ebcf(%rip), %eax ## 0xffffff8000c95288 <_xcpm_config+0xa8>
+ffffff80004066b9:      	jb	0xffffff80004066ef <_xcpm_enable_pstate_ctrs+0xbff>
+ffffff80004066bb:      	movl	$0x0, 0x88ebcb(%rip) ## 0xffffff8000c95290 <_xcpm_config+0xb0>
+ffffff80004066c5:      	testl	$0xfffffff7, 0xa53ec1(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff80004066cf:      	jne	0xffffff8000406a48 <_xcpm_enable_pstate_ctrs+0xf58>
+ffffff80004066d5:      	movl	$0x0, 0x88eba5(%rip) ## 0xffffff8000c95284 <_xcpm_config+0xa4>
+ffffff80004066df:      	movl	$0x0, 0x88eb8f(%rip) ## 0xffffff8000c95278 <_xcpm_config+0x98>
+ffffff80004066e9:      	xorl	%edx, %edx
+ffffff80004066eb:      	xorl	%eax, %eax
+ffffff80004066ed:      	jmp	0xffffff8000406707 <_xcpm_enable_pstate_ctrs+0xc17>
+ffffff80004066ef:      	movl	0x88eb83(%rip), %edx ## 0xffffff8000c95278 <_xcpm_config+0x98>
+ffffff80004066f5:      	cmpl	0x88eb81(%rip), %edx ## 0xffffff8000c9527c <_xcpm_config+0x9c>
+ffffff80004066fb:      	jb	0xffffff8000406707 <_xcpm_enable_pstate_ctrs+0xc17>
+ffffff80004066fd:      	movl	$0x1, 0x88eb89(%rip) ## 0xffffff8000c95290 <_xcpm_config+0xb0>
+ffffff8000406707:      	cmpl	$0x0, 0x88eb86(%rip) ## 0xffffff8000c95294 <_xcpm_config+0xb4>
+ffffff800040670e:      	je	0xffffff8000406748 <_xcpm_enable_pstate_ctrs+0xc58>
+ffffff8000406710:      	cmpl	0x88eb76(%rip), %eax ## 0xffffff8000c9528c <_xcpm_config+0xac>
+ffffff8000406716:      	jb	0xffffff8000406748 <_xcpm_enable_pstate_ctrs+0xc58>
+ffffff8000406718:      	movl	$0x0, 0x88eb72(%rip) ## 0xffffff8000c95294 <_xcpm_config+0xb4>
+ffffff8000406722:      	testl	$0xfffffff7, 0xa53e64(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff800040672c:      	jne	0xffffff8000406a64 <_xcpm_enable_pstate_ctrs+0xf74>
+ffffff8000406732:      	movl	$0x0, 0x88eb48(%rip) ## 0xffffff8000c95284 <_xcpm_config+0xa4>
+ffffff800040673c:      	movl	$0x0, 0x88eb32(%rip) ## 0xffffff8000c95278 <_xcpm_config+0x98>
+ffffff8000406746:      	jmp	0xffffff800040675a <_xcpm_enable_pstate_ctrs+0xc6a>
+ffffff8000406748:      	cmpl	0x88eb32(%rip), %edx ## 0xffffff8000c95280 <_xcpm_config+0xa0>
+ffffff800040674e:      	jb	0xffffff800040675a <_xcpm_enable_pstate_ctrs+0xc6a>
+ffffff8000406750:      	movl	$0x1, 0x88eb3a(%rip) ## 0xffffff8000c95294 <_xcpm_config+0xb4>
+ffffff800040675a:      	movl	%r12d, %edi
+ffffff800040675d:      	callq	0xffffff8000406fa0 <_xcpm_enable_pstate_ctrs+0x14b0>
+ffffff8000406762:      	cmpl	$0x0, 0x9fb4c7(%rip) ## 0xffffff8000e01c30 <_xcpm_hwp_enabled>
+ffffff8000406769:      	je	0xffffff800040678c <_xcpm_enable_pstate_ctrs+0xc9c>
+ffffff800040676b:      	movl	0x88ec7f(%rip), %eax ## 0xffffff8000c953f0 <_xcpm_config+0x210>
+ffffff8000406771:      	cmpl	0x9fb500(%rip), %r12d ## 0xffffff8000e01c78 <_xcpm_pst_metadata+0x38>
+ffffff8000406778:      	movzbl	%r14b, %ecx
+ffffff800040677c:      	movl	%ecx, %edx
+ffffff800040677e:      	cmovel	%eax, %edx
+ffffff8000406781:      	testl	%eax, %eax
+ffffff8000406783:      	cmovel	%ecx, %edx
+ffffff8000406786:      	movb	%dl, 0x9fb314(%rip) ## 0xffffff8000e01aa0 <_xcpm_pkg+0x20>
+ffffff800040678c:      	movl	%r12d, %edi
+ffffff800040678f:      	jmp	0xffffff8000406180 <_xcpm_enable_pstate_ctrs+0x690>
+ffffff8000406794:      	movl	$0x199, %ecx    ## imm = 0x199
+ffffff8000406799:      	rdmsr
+ffffff800040679b:      	movl	$0x8, %ecx
+ffffff80004067a0:      	jmp	0xffffff80004067ae <_xcpm_enable_pstate_ctrs+0xcbe>
+ffffff80004067a2:      	movl	$0x774, %ecx    ## imm = 0x774
+ffffff80004067a7:      	rdmsr
+ffffff80004067a9:      	movl	$0x10, %ecx
+ffffff80004067ae:      	shrl	%cl, %eax
+ffffff80004067b0:      	movzbl	%al, %eax
+ffffff80004067b3:      	cmpl	0x9fb2d7(%rip), %eax ## 0xffffff8000e01a90 <_xcpm_pkg+0x10>
+ffffff80004067b9:      	je	0xffffff8000406216 <_xcpm_enable_pstate_ctrs+0x726>
+ffffff80004067bf:      	cmpl	$0x0, 0x88eaca(%rip) ## 0xffffff8000c95290 <_xcpm_config+0xb0>
+ffffff80004067c6:      	jne	0xffffff8000406216 <_xcpm_enable_pstate_ctrs+0x726>
+ffffff80004067cc:      	cmpl	$0x0, 0x88eac1(%rip) ## 0xffffff8000c95294 <_xcpm_config+0xb4>
+ffffff80004067d3:      	jne	0xffffff8000406216 <_xcpm_enable_pstate_ctrs+0x726>
+ffffff80004067d9:      	movq	0x8(%rbp), %rbx
+ffffff80004067dd:      	cmpl	$0x0, 0x9fb44c(%rip) ## 0xffffff8000e01c30 <_xcpm_hwp_enabled>
+ffffff80004067e4:      	je	0xffffff8000406b3a <_xcpm_enable_pstate_ctrs+0x104a>
+ffffff80004067ea:      	cmpl	$0x0, 0x88ec07(%rip) ## 0xffffff8000c953f8 <_xcpm_config+0x218>
+ffffff80004067f1:      	je	0xffffff8000406b48 <_xcpm_enable_pstate_ctrs+0x1058>
+ffffff80004067f7:      	movl	$0x772, %ecx    ## imm = 0x772
+ffffff80004067fc:      	rdmsr
+ffffff80004067fe:      	jmp	0xffffff8000406b4f <_xcpm_enable_pstate_ctrs+0x105f>
+ffffff8000406803:      	movl	-0x40(%rbp), %edx
+ffffff8000406806:      	movl	%edx, %eax
+ffffff8000406808:      	movl	-0x2c(%rbp), %ecx
+ffffff800040680b:      	orl	%ecx, %eax
+ffffff800040680d:      	sete	%al
+ffffff8000406810:      	cmpl	%edx, %ecx
+ffffff8000406812:      	setne	%cl
+ffffff8000406815:      	orb	%al, %cl
+ffffff8000406817:      	jne	0xffffff8000405bd5 <_xcpm_enable_pstate_ctrs+0xe5>
+ffffff800040681d:      	leaq	0x77bd92(%rip), %rdi ## 0xffffff8000b825b6
+ffffff8000406824:      	leaq	0x77bff8(%rip), %rdx ## 0xffffff8000b82823
+ffffff800040682b:      	movl	$0x3b3, %esi    ## imm = 0x3B3
+ffffff8000406830:      	callq	0xffffff8000abbb7c <_Assert>
+ffffff8000406835:      	cmpl	0x9fb43d(%rip), %eax ## 0xffffff8000e01c78 <_xcpm_pst_metadata+0x38>
+ffffff800040683b:      	seta	%cl
+ffffff800040683e:      	cmpl	0x9fb428(%rip), %eax ## 0xffffff8000e01c6c <_xcpm_pst_metadata+0x2c>
+ffffff8000406844:      	jb	0xffffff8000406baf <_xcpm_enable_pstate_ctrs+0x10bf>
+ffffff800040684a:      	testb	%cl, %cl
+ffffff800040684c:      	je	0xffffff8000405c0c <_xcpm_enable_pstate_ctrs+0x11c>
+ffffff8000406852:      	leaq	0x77bd5d(%rip), %rdi ## 0xffffff8000b825b6
+ffffff8000406859:      	leaq	0x77c00e(%rip), %rdx ## 0xffffff8000b8286e
+ffffff8000406860:      	movl	$0x3b9, %esi    ## imm = 0x3B9
+ffffff8000406865:      	callq	0xffffff8000abbb7c <_Assert>
+ffffff800040686a:      	movl	0x9fb228(%rip), %esi ## 0xffffff8000e01a98 <_xcpm_pkg+0x18>
+ffffff8000406870:      	movl	0x9fb21e(%rip), %edx ## 0xffffff8000e01a94 <_xcpm_pkg+0x14>
+ffffff8000406876:      	movl	%eax, %edi
+ffffff8000406878:      	cmpl	%esi, %eax
+ffffff800040687a:      	jb	0xffffff8000406bcc <_xcpm_enable_pstate_ctrs+0x10dc>
+ffffff8000406880:      	testl	%edx, %edx
+ffffff8000406882:      	je	0xffffff800040688c <_xcpm_enable_pstate_ctrs+0xd9c>
+ffffff8000406884:      	cmpl	%edx, %edi
+ffffff8000406886:      	ja	0xffffff8000406bbe <_xcpm_enable_pstate_ctrs+0x10ce>
+ffffff800040688c:      	cmpl	%esi, %eax
+ffffff800040688e:      	jb	0xffffff8000406bdb <_xcpm_enable_pstate_ctrs+0x10eb>
+ffffff8000406894:      	testl	%edx, %edx
+ffffff8000406896:      	je	0xffffff80004068a0 <_xcpm_enable_pstate_ctrs+0xdb0>
+ffffff8000406898:      	cmpl	%edx, %eax
+ffffff800040689a:      	ja	0xffffff8000406bc5 <_xcpm_enable_pstate_ctrs+0x10d5>
+ffffff80004068a0:      	movl	%eax, 0x84(%r15)
+ffffff80004068a7:      	orl	$0xb, %ecx
+ffffff80004068aa:      	movl	%ecx, 0xb8(%r15)
+ffffff80004068b1:      	callq	0xffffff8000406c80 <_xcpm_enable_pstate_ctrs+0x1190>
+ffffff80004068b6:      	jmp	0xffffff8000406501 <_xcpm_enable_pstate_ctrs+0xa11>
+ffffff80004068bb:      	movl	%ecx, %edi
+ffffff80004068bd:      	jmp	0xffffff8000406003 <_xcpm_enable_pstate_ctrs+0x513>
+ffffff80004068c2:      	movl	%esi, %edi
+ffffff80004068c4:      	jmp	0xffffff8000405ff4 <_xcpm_enable_pstate_ctrs+0x504>
+ffffff80004068c9:      	movl	%ecx, %eax
+ffffff80004068cb:      	jmp	0xffffff800040610b <_xcpm_enable_pstate_ctrs+0x61b>
+ffffff80004068d0:      	movl	%esi, %eax
+ffffff80004068d2:      	testl	%ecx, %ecx
+ffffff80004068d4:      	jne	0xffffff8000406103 <_xcpm_enable_pstate_ctrs+0x613>
+ffffff80004068da:      	jmp	0xffffff800040610b <_xcpm_enable_pstate_ctrs+0x61b>
+ffffff80004068df:      	movl	%esi, %r12d
+ffffff80004068e2:      	jmp	0xffffff8000405db7 <_xcpm_enable_pstate_ctrs+0x2c7>
+ffffff80004068e7:      	movl	%eax, %r12d
+ffffff80004068ea:      	testl	%esi, %esi
+ffffff80004068ec:      	jne	0xffffff8000405dae <_xcpm_enable_pstate_ctrs+0x2be>
+ffffff80004068f2:      	jmp	0xffffff8000405db7 <_xcpm_enable_pstate_ctrs+0x2c7>
+ffffff80004068f7:      	movl	%r12d, %edx
+ffffff80004068fa:      	movslq	%r13d, %rcx
+ffffff80004068fd:      	movl	0x9fb18c(%rip), %r8d ## 0xffffff8000e01a90 <_xcpm_pkg+0x10>
+ffffff8000406904:      	movl	$0x5310200, %edi ## imm = 0x5310200
+ffffff8000406909:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff800040690e:      	movl	-0x2c(%rbp), %r11d
+ffffff8000406912:      	leaq	0x9fbfe7(%rip), %rdi ## 0xffffff8000e02900 <_xcpm_cpus>
+ffffff8000406919:      	cmpl	%r12d, 0x9fb170(%rip) ## 0xffffff8000e01a90 <_xcpm_pkg+0x10>
+ffffff8000406920:      	je	0xffffff8000405dd4 <_xcpm_enable_pstate_ctrs+0x2e4>
+ffffff8000406926:      	jmp	0xffffff80004063ef <_xcpm_enable_pstate_ctrs+0x8ff>
+ffffff800040692b:      	cmpl	$0x1f, %edx
+ffffff800040692e:      	ja	0xffffff8000406938 <_xcpm_enable_pstate_ctrs+0xe48>
+ffffff8000406930:      	testl	%eax, %eax
+ffffff8000406932:      	jne	0xffffff8000406093 <_xcpm_enable_pstate_ctrs+0x5a3>
+ffffff8000406938:      	leaq	0x77bc77(%rip), %rdi ## 0xffffff8000b825b6
+ffffff800040693f:      	leaq	0x77c37e(%rip), %rdx ## 0xffffff8000b82cc4
+ffffff8000406946:      	movl	$0x15a, %esi    ## imm = 0x15A
+ffffff800040694b:      	callq	0xffffff8000abbb7c <_Assert>
+ffffff8000406950:      	movl	%edi, -0x2c(%rbp)
+ffffff8000406953:      	movl	$0x5310270, %edi ## imm = 0x5310270
+ffffff8000406958:      	movq	-0x40(%rbp), %rsi
+ffffff800040695c:      	movq	%rbx, %rcx
+ffffff800040695f:      	xorl	%r8d, %r8d
+ffffff8000406962:      	movl	%r11d, %r15d
+ffffff8000406965:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff800040696a:      	movq	%r13, %r10
+ffffff800040696d:      	movl	%r15d, %r11d
+ffffff8000406970:      	movl	-0x2c(%rbp), %edi
+ffffff8000406973:      	movq	-0x60(%rbp), %r15
+ffffff8000406977:      	movq	0x9fb18a(%rip), %r8 ## 0xffffff8000e01b08 <_xcpm_frequency_vector>
+ffffff800040697e:      	movl	0x9fb114(%rip), %esi ## 0xffffff8000e01a98 <_xcpm_pkg+0x18>
+ffffff8000406984:      	movl	0x9fb10a(%rip), %ecx ## 0xffffff8000e01a94 <_xcpm_pkg+0x14>
+ffffff800040698a:      	jmp	0xffffff80004060c3 <_xcpm_enable_pstate_ctrs+0x5d3>
+ffffff800040698f:      	movl	0x88e8e3(%rip), %ecx ## 0xffffff8000c95278 <_xcpm_config+0x98>
+ffffff8000406995:      	movl	0x88e8e8(%rip), %r8d ## 0xffffff8000c95284 <_xcpm_config+0xa4>
+ffffff800040699c:      	movl	$0x3, %edx
+ffffff80004069a1:      	movl	$0x5310224, %edi ## imm = 0x5310224
+ffffff80004069a6:      	xorl	%esi, %esi
+ffffff80004069a8:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff80004069ad:      	jmp	0xffffff8000406216 <_xcpm_enable_pstate_ctrs+0x726>
+ffffff80004069b2:      	movl	$0x2, %edx
+ffffff80004069b7:      	movl	$0x5310224, %edi ## imm = 0x5310224
+ffffff80004069bc:      	xorl	%esi, %esi
+ffffff80004069be:      	xorl	%ecx, %ecx
+ffffff80004069c0:      	xorl	%r8d, %r8d
+ffffff80004069c3:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff80004069c8:      	jmp	0xffffff8000406501 <_xcpm_enable_pstate_ctrs+0xa11>
+ffffff80004069cd:      	movq	0x8(%rbp), %rbx
+ffffff80004069d1:      	cmpl	$0x0, 0x9fb258(%rip) ## 0xffffff8000e01c30 <_xcpm_hwp_enabled>
+ffffff80004069d8:      	je	0xffffff8000406ab6 <_xcpm_enable_pstate_ctrs+0xfc6>
+ffffff80004069de:      	cmpl	$0x0, 0x88ea13(%rip) ## 0xffffff8000c953f8 <_xcpm_config+0x218>
+ffffff80004069e5:      	je	0xffffff8000406ac4 <_xcpm_enable_pstate_ctrs+0xfd4>
+ffffff80004069eb:      	movl	$0x772, %ecx    ## imm = 0x772
+ffffff80004069f0:      	rdmsr
+ffffff80004069f2:      	jmp	0xffffff8000406acb <_xcpm_enable_pstate_ctrs+0xfdb>
+ffffff80004069f7:      	movl	0x88e87b(%rip), %ecx ## 0xffffff8000c95278 <_xcpm_config+0x98>
+ffffff80004069fd:      	movl	0x88e880(%rip), %r8d ## 0xffffff8000c95284 <_xcpm_config+0xa4>
+ffffff8000406a04:      	movl	$0x3, %edx
+ffffff8000406a09:      	movl	$0x5310224, %edi ## imm = 0x5310224
+ffffff8000406a0e:      	xorl	%esi, %esi
+ffffff8000406a10:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff8000406a15:      	cmpl	$0x0, 0x9fbc9c(%rip) ## 0xffffff8000e026b8 <_xcpm_assert_enable>
+ffffff8000406a1c:      	jne	0xffffff8000406434 <_xcpm_enable_pstate_ctrs+0x944>
+ffffff8000406a22:      	jmp	0xffffff8000406216 <_xcpm_enable_pstate_ctrs+0x726>
+ffffff8000406a27:      	cmpl	$0x40, %ecx
+ffffff8000406a2a:      	jb	0xffffff800040666b <_xcpm_enable_pstate_ctrs+0xb7b>
+ffffff8000406a30:      	leaq	0x77bb7f(%rip), %rdi ## 0xffffff8000b825b6
+ffffff8000406a37:      	leaq	0x77c169(%rip), %rdx ## 0xffffff8000b82ba7
+ffffff8000406a3e:      	movl	$0x378, %esi    ## imm = 0x378
+ffffff8000406a43:      	callq	0xffffff8000abbb7c <_Assert>
+ffffff8000406a48:      	movl	%eax, %ecx
+ffffff8000406a4a:      	movl	0x88e827(%rip), %r8d ## 0xffffff8000c95278 <_xcpm_config+0x98>
+ffffff8000406a51:      	movl	$0x5310228, %edi ## imm = 0x5310228
+ffffff8000406a56:      	xorl	%esi, %esi
+ffffff8000406a58:      	xorl	%edx, %edx
+ffffff8000406a5a:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff8000406a5f:      	jmp	0xffffff80004066d5 <_xcpm_enable_pstate_ctrs+0xbe5>
+ffffff8000406a64:      	movl	%eax, %ecx
+ffffff8000406a66:      	movl	%edx, %r8d
+ffffff8000406a69:      	movl	$0x1, %edx
+ffffff8000406a6e:      	movl	$0x5310228, %edi ## imm = 0x5310228
+ffffff8000406a73:      	xorl	%esi, %esi
+ffffff8000406a75:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff8000406a7a:      	jmp	0xffffff8000406732 <_xcpm_enable_pstate_ctrs+0xc42>
+ffffff8000406a7f:      	movl	$0x2, %edx
+ffffff8000406a84:      	movl	$0x5310224, %edi ## imm = 0x5310224
+ffffff8000406a89:      	xorl	%esi, %esi
+ffffff8000406a8b:      	xorl	%ecx, %ecx
+ffffff8000406a8d:      	xorl	%r8d, %r8d
+ffffff8000406a90:      	movl	%r11d, %r15d
+ffffff8000406a93:      	movb	%r9b, -0x2d(%rbp)
+ffffff8000406a97:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff8000406a9c:      	movzbl	-0x2d(%rbp), %r9d
+ffffff8000406aa1:      	xorl	%r10d, %r10d
+ffffff8000406aa4:      	movl	%r15d, %r11d
+ffffff8000406aa7:      	movq	-0x58(%rbp), %rax
+ffffff8000406aab:      	movl	%eax, -0x34(%rbp)
+ffffff8000406aae:      	movl	%eax, %r15d
+ffffff8000406ab1:      	jmp	0xffffff8000406580 <_xcpm_enable_pstate_ctrs+0xa90>
+ffffff8000406ab6:      	movl	$0x199, %ecx    ## imm = 0x199
+ffffff8000406abb:      	rdmsr
+ffffff8000406abd:      	movl	$0x8, %ecx
+ffffff8000406ac2:      	jmp	0xffffff8000406ad0 <_xcpm_enable_pstate_ctrs+0xfe0>
+ffffff8000406ac4:      	movl	$0x774, %ecx    ## imm = 0x774
+ffffff8000406ac9:      	rdmsr
+ffffff8000406acb:      	movl	$0x10, %ecx
+ffffff8000406ad0:      	shrl	%cl, %eax
+ffffff8000406ad2:      	movzbl	%al, %r9d
+ffffff8000406ad6:      	movl	0x9fafb4(%rip), %eax ## 0xffffff8000e01a90 <_xcpm_pkg+0x10>
+ffffff8000406adc:      	movl	%eax, (%rsp)
+ffffff8000406adf:      	leaq	0x77be0d(%rip), %rdi ## 0xffffff8000b828f3
+ffffff8000406ae6:      	leaq	0x77be46(%rip), %rsi ## 0xffffff8000b82933
+ffffff8000406aed:      	leaq	0x77bac2(%rip), %rdx ## 0xffffff8000b825b6
+ffffff8000406af4:      	movl	$0x3ea, %ecx    ## imm = 0x3EA
+ffffff8000406af9:      	movq	%rbx, %r8
+ffffff8000406afc:      	xorl	%eax, %eax
+ffffff8000406afe:      	callq	0xffffff8000a81890 <_kprintf>
+ffffff8000406b03:      	cmpl	$0x0, 0x9fb092(%rip) ## 0xffffff8000e01b9c <_xcpm_assert_trace>
+ffffff8000406b0a:      	je	0xffffff8000406c1f <_xcpm_enable_pstate_ctrs+0x112f>
+ffffff8000406b10:      	testl	$0xfffffff7, 0xa53a76(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff8000406b1a:      	jne	0xffffff8000406bea <_xcpm_enable_pstate_ctrs+0x10fa>
+ffffff8000406b20:      	movl	$0x0, 0xa53a66(%rip) ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff8000406b2a:      	movl	-0x2c(%rbp), %r11d
+ffffff8000406b2e:      	leaq	0x9fbdcb(%rip), %rdi ## 0xffffff8000e02900 <_xcpm_cpus>
+ffffff8000406b35:      	jmp	0xffffff80004064a0 <_xcpm_enable_pstate_ctrs+0x9b0>
+ffffff8000406b3a:      	movl	$0x199, %ecx    ## imm = 0x199
+ffffff8000406b3f:      	rdmsr
+ffffff8000406b41:      	movl	$0x8, %ecx
+ffffff8000406b46:      	jmp	0xffffff8000406b54 <_xcpm_enable_pstate_ctrs+0x1064>
+ffffff8000406b48:      	movl	$0x774, %ecx    ## imm = 0x774
+ffffff8000406b4d:      	rdmsr
+ffffff8000406b4f:      	movl	$0x10, %ecx
+ffffff8000406b54:      	shrl	%cl, %eax
+ffffff8000406b56:      	movzbl	%al, %r9d
+ffffff8000406b5a:      	movl	0x9faf30(%rip), %eax ## 0xffffff8000e01a90 <_xcpm_pkg+0x10>
+ffffff8000406b60:      	movl	%eax, (%rsp)
+ffffff8000406b63:      	leaq	0x77bd89(%rip), %rdi ## 0xffffff8000b828f3
+ffffff8000406b6a:      	leaq	0x77bdc2(%rip), %rsi ## 0xffffff8000b82933
+ffffff8000406b71:      	leaq	0x77ba3e(%rip), %rdx ## 0xffffff8000b825b6
+ffffff8000406b78:      	movl	$0x437, %ecx    ## imm = 0x437
+ffffff8000406b7d:      	movq	%rbx, %r8
+ffffff8000406b80:      	xorl	%eax, %eax
+ffffff8000406b82:      	callq	0xffffff8000a81890 <_kprintf>
+ffffff8000406b87:      	cmpl	$0x0, 0x9fb00e(%rip) ## 0xffffff8000e01b9c <_xcpm_assert_trace>
+ffffff8000406b8e:      	je	0xffffff8000406c49 <_xcpm_enable_pstate_ctrs+0x1159>
+ffffff8000406b94:      	testl	$0xfffffff7, 0xa539f2(%rip) ## imm = 0xFFFFFFF7
+                                                ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff8000406b9e:      	jne	0xffffff8000406c06 <_xcpm_enable_pstate_ctrs+0x1116>
+ffffff8000406ba0:      	movl	$0x0, 0xa539e6(%rip) ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff8000406baa:      	jmp	0xffffff8000406216 <_xcpm_enable_pstate_ctrs+0x726>
+ffffff8000406baf:      	movb	$0x1, %cl
+ffffff8000406bb1:      	testb	%cl, %cl
+ffffff8000406bb3:      	je	0xffffff8000405c0c <_xcpm_enable_pstate_ctrs+0x11c>
+ffffff8000406bb9:      	jmp	0xffffff8000406852 <_xcpm_enable_pstate_ctrs+0xd62>
+ffffff8000406bbe:      	movl	%edx, %edi
+ffffff8000406bc0:      	jmp	0xffffff800040688c <_xcpm_enable_pstate_ctrs+0xd9c>
+ffffff8000406bc5:      	movl	%edx, %eax
+ffffff8000406bc7:      	jmp	0xffffff80004068a0 <_xcpm_enable_pstate_ctrs+0xdb0>
+ffffff8000406bcc:      	movl	%esi, %edi
+ffffff8000406bce:      	testl	%edx, %edx
+ffffff8000406bd0:      	jne	0xffffff8000406884 <_xcpm_enable_pstate_ctrs+0xd94>
+ffffff8000406bd6:      	jmp	0xffffff800040688c <_xcpm_enable_pstate_ctrs+0xd9c>
+ffffff8000406bdb:      	movl	%esi, %eax
+ffffff8000406bdd:      	testl	%edx, %edx
+ffffff8000406bdf:      	jne	0xffffff8000406898 <_xcpm_enable_pstate_ctrs+0xda8>
+ffffff8000406be5:      	jmp	0xffffff80004068a0 <_xcpm_enable_pstate_ctrs+0xdb0>
+ffffff8000406bea:      	movl	$0x3ea, %edx    ## imm = 0x3EA
+ffffff8000406bef:      	movl	$0xaaaa0000, %edi ## imm = 0xAAAA0000
+ffffff8000406bf4:      	movq	%rbx, %rsi
+ffffff8000406bf7:      	xorl	%ecx, %ecx
+ffffff8000406bf9:      	xorl	%r8d, %r8d
+ffffff8000406bfc:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff8000406c01:      	jmp	0xffffff8000406b20 <_xcpm_enable_pstate_ctrs+0x1030>
+ffffff8000406c06:      	movl	$0x437, %edx    ## imm = 0x437
+ffffff8000406c0b:      	movl	$0xaaaa0000, %edi ## imm = 0xAAAA0000
+ffffff8000406c10:      	movq	%rbx, %rsi
+ffffff8000406c13:      	xorl	%ecx, %ecx
+ffffff8000406c15:      	xorl	%r8d, %r8d
+ffffff8000406c18:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff8000406c1d:      	jmp	0xffffff8000406ba0 <_xcpm_enable_pstate_ctrs+0x10b0>
+ffffff8000406c1f:      	callq	0xffffff8000406f60 <_xcpm_enable_pstate_ctrs+0x1470>
+ffffff8000406c24:      	movl	0x9fae66(%rip), %ecx ## 0xffffff8000e01a90 <_xcpm_pkg+0x10>
+ffffff8000406c2a:      	movl	%ecx, (%rsp)
+ffffff8000406c2d:      	leaq	0x77bcbf(%rip), %rdi ## 0xffffff8000b828f3
+ffffff8000406c34:      	leaq	0x77bcf8(%rip), %rsi ## 0xffffff8000b82933
+ffffff8000406c3b:      	leaq	0x77b974(%rip), %rdx ## 0xffffff8000b825b6
+ffffff8000406c42:      	movl	$0x3ea, %ecx    ## imm = 0x3EA
+ffffff8000406c47:      	jmp	0xffffff8000406c71 <_xcpm_enable_pstate_ctrs+0x1181>
+ffffff8000406c49:      	callq	0xffffff8000406f60 <_xcpm_enable_pstate_ctrs+0x1470>
+ffffff8000406c4e:      	movl	0x9fae3c(%rip), %ecx ## 0xffffff8000e01a90 <_xcpm_pkg+0x10>
+ffffff8000406c54:      	movl	%ecx, (%rsp)
+ffffff8000406c57:      	leaq	0x77bc95(%rip), %rdi ## 0xffffff8000b828f3
+ffffff8000406c5e:      	leaq	0x77bcce(%rip), %rsi ## 0xffffff8000b82933
+ffffff8000406c65:      	leaq	0x77b94a(%rip), %rdx ## 0xffffff8000b825b6
+ffffff8000406c6c:      	movl	$0x437, %ecx    ## imm = 0x437
+ffffff8000406c71:      	movq	%rbx, %r8
+ffffff8000406c74:      	movl	%eax, %r9d
+ffffff8000406c77:      	xorl	%eax, %eax
+ffffff8000406c79:      	callq	0xffffff8000abbaec <_panic>
+ffffff8000406c7e:      	nop
+ffffff8000406c80:      	pushq	%rbp
+ffffff8000406c81:      	movq	%rsp, %rbp
+ffffff8000406c84:      	pushq	%rbx
+ffffff8000406c85:      	pushq	%rax
+ffffff8000406c86:      	movl	%edi, %ebx
+ffffff8000406c88:      	cmpl	$0x0, 0x9fba29(%rip) ## 0xffffff8000e026b8 <_xcpm_assert_enable>
+ffffff8000406c8f:      	jne	0xffffff8000406e91 <_xcpm_enable_pstate_ctrs+0x13a1>
+ffffff8000406c95:      	cmpl	$0x0, 0x88e7b0(%rip) ## 0xffffff8000c9544c <_xcpm_config+0x26c>
+ffffff8000406c9c:      	movl	0xa538ee(%rip), %eax ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff8000406ca2:      	jne	0xffffff8000406eb5 <_xcpm_enable_pstate_ctrs+0x13c5>
+ffffff8000406ca8:      	testl	$0xfffffff7, %eax ## imm = 0xFFFFFFF7
+ffffff8000406cad:      	jne	0xffffff8000406ee6 <_xcpm_enable_pstate_ctrs+0x13f6>
+ffffff8000406cb3:      	cmpl	$0x0, 0x9faf76(%rip) ## 0xffffff8000e01c30 <_xcpm_hwp_enabled>
+ffffff8000406cba:      	je	0xffffff8000406dcf <_xcpm_enable_pstate_ctrs+0x12df>
+ffffff8000406cc0:      	movzbl	0x9fadd9(%rip), %eax ## 0xffffff8000e01aa0 <_xcpm_pkg+0x20>
+ffffff8000406cc7:      	movzbl	%al, %r10d
+ffffff8000406ccb:      	movl	0x9fadc7(%rip), %ecx ## 0xffffff8000e01a98 <_xcpm_pkg+0x18>
+ffffff8000406cd1:      	movl	0x9fadbd(%rip), %edx ## 0xffffff8000e01a94 <_xcpm_pkg+0x14>
+ffffff8000406cd7:      	cmpl	$0x0, 0x88e702(%rip) ## 0xffffff8000c953e0 <_xcpm_config+0x200>
+ffffff8000406cde:      	je	0xffffff8000406cfd <_xcpm_enable_pstate_ctrs+0x120d>
+ffffff8000406ce0:      	cmpl	$0x0, 0x88e6c1(%rip) ## 0xffffff8000c953a8 <_xcpm_config+0x1c8>
+ffffff8000406ce7:      	je	0xffffff8000406cfd <_xcpm_enable_pstate_ctrs+0x120d>
+ffffff8000406ce9:      	movl	0x88e6ed(%rip), %esi ## 0xffffff8000c953dc <_xcpm_config+0x1fc>
+ffffff8000406cef:      	cmpl	%r10d, %esi
+ffffff8000406cf2:      	jae	0xffffff8000406cfd <_xcpm_enable_pstate_ctrs+0x120d>
+ffffff8000406cf4:      	incq	0x88e6ed(%rip)  ## 0xffffff8000c953e8 <_xcpm_config+0x208>
+ffffff8000406cfb:      	movl	%esi, %eax
+ffffff8000406cfd:      	shll	$0x10, %ebx
+ffffff8000406d00:      	movzbl	%al, %esi
+ffffff8000406d03:      	shll	$0x18, %esi
+ffffff8000406d06:      	movq	%rdx, %rax
+ffffff8000406d09:      	shlq	$0x8, %rax
+ffffff8000406d0d:      	orl	%ebx, %esi
+ffffff8000406d0f:      	movq	%rcx, %rdi
+ffffff8000406d12:      	orq	%rax, %rdi
+ffffff8000406d15:      	orq	%rsi, %rdi
+ffffff8000406d18:      	cmpl	$0x0, 0x88e6d9(%rip) ## 0xffffff8000c953f8 <_xcpm_config+0x218>
+ffffff8000406d1f:      	je	0xffffff8000406de8 <_xcpm_enable_pstate_ctrs+0x12f8>
+ffffff8000406d25:      	movl	0x88e70d(%rip), %esi ## 0xffffff8000c95438 <_xcpm_config+0x258>
+ffffff8000406d2b:      	testl	%esi, %esi
+ffffff8000406d2d:      	je	0xffffff8000406df9 <_xcpm_enable_pstate_ctrs+0x1309>
+ffffff8000406d33:      	movl	%gs:0x20, %edi
+ffffff8000406d3b:      	imulq	$0x380, %rdi, %r8 ## imm = 0x380
+ffffff8000406d42:      	leaq	0x9fbbb7(%rip), %r11 ## 0xffffff8000e02900 <_xcpm_cpus>
+ffffff8000406d49:      	leaq	(%r11,%r8), %rdi
+ffffff8000406d4d:      	movl	0x84(%r8,%r11), %r9d
+ffffff8000406d55:      	movl	0xc0(%r8,%r11), %r8d
+ffffff8000406d5d:      	shll	$0x10, %r9d
+ffffff8000406d61:      	shll	$0x18, %r8d
+ffffff8000406d65:      	orl	%ecx, %r9d
+ffffff8000406d68:      	orl	%r8d, %r9d
+ffffff8000406d6b:      	orq	%rax, %r9
+ffffff8000406d6e:      	shll	$0x18, %r10d
+ffffff8000406d72:      	orq	%rcx, %rbx
+ffffff8000406d75:      	cmpl	$0x1, %esi
+ffffff8000406d78:      	je	0xffffff8000406e07 <_xcpm_enable_pstate_ctrs+0x1317>
+ffffff8000406d7e:      	cmpl	$0x2, %esi
+ffffff8000406d81:      	jne	0xffffff8000406e1b <_xcpm_enable_pstate_ctrs+0x132b>
+ffffff8000406d87:      	movl	0xb8(%rdi), %ecx
+ffffff8000406d8d:      	movl	0xbc(%rdi), %esi
+ffffff8000406d93:      	movabsq	$0x40000000000, %r8 ## imm = 0x40000000000
+ffffff8000406d9d:      	orq	%r9, %r8
+ffffff8000406da0:      	testl	%esi, %esi
+ffffff8000406da2:      	cmoveq	%r8, %r9
+ffffff8000406da6:      	testb	$0x8, %cl
+ffffff8000406da9:      	cmovneq	%r8, %r9
+ffffff8000406dad:      	testb	$0x20, %cl
+ffffff8000406db0:      	jne	0xffffff8000406e21 <_xcpm_enable_pstate_ctrs+0x1331>
+ffffff8000406db2:      	movabsq	$0x3000040000000000, %r8 ## imm = 0x3000040000000000
+ffffff8000406dbc:      	orq	%r9, %r8
+ffffff8000406dbf:      	cmpl	$0x1, %esi
+ffffff8000406dc2:      	cmoveq	%r8, %r9
+ffffff8000406dc6:      	testb	$0x4, %cl
+ffffff8000406dc9:      	cmovneq	%r8, %r9
+ffffff8000406dcd:      	jmp	0xffffff8000406e21 <_xcpm_enable_pstate_ctrs+0x1331>
+ffffff8000406dcf:      	shll	$0x8, %ebx
+ffffff8000406dd2:      	movslq	%ebx, %rdx
+ffffff8000406dd5:      	shrq	$0x20, %rdx
+ffffff8000406dd9:      	movl	$0x199, %ecx    ## imm = 0x199
+ffffff8000406dde:      	movq	%rbx, %rax
+ffffff8000406de1:      	wrmsr
+ffffff8000406de3:      	jmp	0xffffff8000406e83 <_xcpm_enable_pstate_ctrs+0x1393>
+ffffff8000406de8:      	movl	%edi, %eax
+ffffff8000406dea:      	shrl	$0x18, %edx
+ffffff8000406ded:      	movl	$0x774, %ecx    ## imm = 0x774
+ffffff8000406df2:      	wrmsr
+ffffff8000406df4:      	jmp	0xffffff8000406e83 <_xcpm_enable_pstate_ctrs+0x1393>
+ffffff8000406df9:      	movl	%edi, %eax
+ffffff8000406dfb:      	shrl	$0x18, %edx
+ffffff8000406dfe:      	movl	$0x772, %ecx    ## imm = 0x772
+ffffff8000406e03:      	wrmsr
+ffffff8000406e05:      	jmp	0xffffff8000406e83 <_xcpm_enable_pstate_ctrs+0x1393>
+ffffff8000406e07:      	movl	0xb8(%rdi), %ecx
+ffffff8000406e0d:      	movl	%ecx, %esi
+ffffff8000406e0f:      	andl	$0x8, %esi
+ffffff8000406e12:      	shlq	$0x27, %rsi
+ffffff8000406e16:      	orq	%rsi, %r9
+ffffff8000406e19:      	jmp	0xffffff8000406e21 <_xcpm_enable_pstate_ctrs+0x1331>
+ffffff8000406e1b:      	movl	0xb8(%rdi), %ecx
+ffffff8000406e21:      	orq	%rax, %rbx
+ffffff8000406e24:      	testb	$0xd, %cl
+ffffff8000406e27:      	je	0xffffff8000406e49 <_xcpm_enable_pstate_ctrs+0x1359>
+ffffff8000406e29:      	movl	%r9d, %eax
+ffffff8000406e2c:      	movq	%r9, %rsi
+ffffff8000406e2f:      	shrq	$0x20, %rsi
+ffffff8000406e33:      	movl	$0x774, %ecx    ## imm = 0x774
+ffffff8000406e38:      	movq	%rdx, %r8
+ffffff8000406e3b:      	movq	%rsi, %rdx
+ffffff8000406e3e:      	wrmsr
+ffffff8000406e40:      	movq	%r8, %rdx
+ffffff8000406e43:      	movl	0xb8(%rdi), %ecx
+ffffff8000406e49:      	orq	%rbx, %r10
+ffffff8000406e4c:      	testb	$0x2, %cl
+ffffff8000406e4f:      	je	0xffffff8000406e5e <_xcpm_enable_pstate_ctrs+0x136e>
+ffffff8000406e51:      	movl	%r10d, %eax
+ffffff8000406e54:      	shrl	$0x18, %edx
+ffffff8000406e57:      	movl	$0x772, %ecx    ## imm = 0x772
+ffffff8000406e5c:      	wrmsr
+ffffff8000406e5e:      	incq	0xa8(%rdi)
+ffffff8000406e65:      	cmpl	$0x0, 0x88e5e0(%rip) ## 0xffffff8000c9544c <_xcpm_config+0x26c>
+ffffff8000406e6c:      	movl	0xa5371e(%rip), %eax ## 0xffffff8000e5a590 <_kdebug_enable>
+ffffff8000406e72:      	jne	0xffffff8000406f02 <_xcpm_enable_pstate_ctrs+0x1412>
+ffffff8000406e78:      	testl	$0xfffffff7, %eax ## imm = 0xFFFFFFF7
+ffffff8000406e7d:      	jne	0xffffff8000406f39 <_xcpm_enable_pstate_ctrs+0x1449>
+ffffff8000406e83:      	incq	0x88e3b6(%rip)  ## 0xffffff8000c95240 <_xcpm_config+0x60>
+ffffff8000406e8a:      	addq	$0x8, %rsp
+ffffff8000406e8e:      	popq	%rbx
+ffffff8000406e8f:      	popq	%rbp
+ffffff8000406e90:      	retq
+ffffff8000406e91:      	leal	-0x33(%rbx), %eax
+ffffff8000406e94:      	cmpl	$-0x30, %eax
+ffffff8000406e97:      	ja	0xffffff8000406c95 <_xcpm_enable_pstate_ctrs+0x11a5>
+ffffff8000406e9d:      	leaq	0x77b712(%rip), %rdi ## 0xffffff8000b825b6
+ffffff8000406ea4:      	leaq	0x77bd29(%rip), %rdx ## 0xffffff8000b82bd4
+ffffff8000406eab:      	movl	$0x204, %esi    ## imm = 0x204
+ffffff8000406eb0:      	callq	0xffffff8000abbb7c <_Assert>
+ffffff8000406eb5:      	testl	$0xfffffff7, %eax ## imm = 0xFFFFFFF7
+ffffff8000406eba:      	je	0xffffff8000406cb3 <_xcpm_enable_pstate_ctrs+0x11c3>
+ffffff8000406ec0:      	movl	%ebx, %r8d
+ffffff8000406ec3:      	movl	0x9fabca(%rip), %r9d ## 0xffffff8000e01a94 <_xcpm_pkg+0x14>
+ffffff8000406eca:      	movl	$0x198, %ecx    ## imm = 0x198
+ffffff8000406ecf:      	rdmsr
+ffffff8000406ed1:      	movzbl	%ah, %eax
+ffffff8000406ed4:      	movl	$0x5310020, %edi ## imm = 0x5310020
+ffffff8000406ed9:      	xorl	%esi, %esi
+ffffff8000406edb:      	movq	%r8, %rdx
+ffffff8000406ede:      	movq	%r9, %rcx
+ffffff8000406ee1:      	movq	%rax, %r8
+ffffff8000406ee4:      	jmp	0xffffff8000406ef8 <_xcpm_enable_pstate_ctrs+0x1408>
+ffffff8000406ee6:      	movl	%ebx, %edx
+ffffff8000406ee8:      	movl	0x9faba6(%rip), %ecx ## 0xffffff8000e01a94 <_xcpm_pkg+0x14>
+ffffff8000406eee:      	movl	$0x5310020, %edi ## imm = 0x5310020
+ffffff8000406ef3:      	xorl	%esi, %esi
+ffffff8000406ef5:      	xorl	%r8d, %r8d
+ffffff8000406ef8:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff8000406efd:      	jmp	0xffffff8000406cb3 <_xcpm_enable_pstate_ctrs+0x11c3>
+ffffff8000406f02:      	testl	$0xfffffff7, %eax ## imm = 0xFFFFFFF7
+ffffff8000406f07:      	je	0xffffff8000406e83 <_xcpm_enable_pstate_ctrs+0x1393>
+ffffff8000406f0d:      	movl	0xb8(%rdi), %esi
+ffffff8000406f13:      	movl	$0x772, %ecx    ## imm = 0x772
+ffffff8000406f18:      	rdmsr
+ffffff8000406f1a:      	shlq	$0x20, %rdx
+ffffff8000406f1e:      	movl	%eax, %r8d
+ffffff8000406f21:      	orq	%rdx, %r8
+ffffff8000406f24:      	movl	$0x53102a4, %edi ## imm = 0x53102A4
+ffffff8000406f29:      	movq	%r9, %rdx
+ffffff8000406f2c:      	movq	%r10, %rcx
+ffffff8000406f2f:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff8000406f34:      	jmp	0xffffff8000406e83 <_xcpm_enable_pstate_ctrs+0x1393>
+ffffff8000406f39:      	movl	0xb8(%rdi), %esi
+ffffff8000406f3f:      	movl	$0x53102a4, %edi ## imm = 0x53102A4
+ffffff8000406f44:      	movq	%r9, %rdx
+ffffff8000406f47:      	movq	%r10, %rcx
+ffffff8000406f4a:      	xorl	%r8d, %r8d
+ffffff8000406f4d:      	callq	0xffffff800077ee80 <_kernel_debug>
+ffffff8000406f52:      	jmp	0xffffff8000406e83 <_xcpm_enable_pstate_ctrs+0x1393>
+ffffff8000406f57:      	nopw	(%rax,%rax)
+ffffff8000406f60:      	pushq	%rbp
+ffffff8000406f61:      	movq	%rsp, %rbp
+ffffff8000406f64:      	cmpl	$0x0, 0x9facc5(%rip) ## 0xffffff8000e01c30 <_xcpm_hwp_enabled>
+ffffff8000406f6b:      	je	0xffffff8000406f7f <_xcpm_enable_pstate_ctrs+0x148f>
+ffffff8000406f6d:      	cmpl	$0x0, 0x88e484(%rip) ## 0xffffff8000c953f8 <_xcpm_config+0x218>
+ffffff8000406f74:      	je	0xffffff8000406f8d <_xcpm_enable_pstate_ctrs+0x149d>
+ffffff8000406f76:      	movl	$0x772, %ecx    ## imm = 0x772
+ffffff8000406f7b:      	rdmsr
+ffffff8000406f7d:      	jmp	0xffffff8000406f94 <_xcpm_enable_pstate_ctrs+0x14a4>
+ffffff8000406f7f:      	movl	$0x199, %ecx    ## imm = 0x199
+ffffff8000406f84:      	rdmsr
+ffffff8000406f86:      	movl	$0x8, %ecx
+ffffff8000406f8b:      	jmp	0xffffff8000406f99 <_xcpm_enable_pstate_ctrs+0x14a9>
+ffffff8000406f8d:      	movl	$0x774, %ecx    ## imm = 0x774
+ffffff8000406f92:      	rdmsr
+ffffff8000406f94:      	movl	$0x10, %ecx
+ffffff8000406f99:      	shrl	%cl, %eax
+ffffff8000406f9b:      	movzbl	%al, %eax
+ffffff8000406f9e:      	popq	%rbp
+ffffff8000406f9f:      	retq

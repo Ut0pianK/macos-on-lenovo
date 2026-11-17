@@ -1,0 +1,7 @@
+# 2026-11-14 18:52:04 부팅 후 5 mins
+적재 전: kernel_task % DMC[0] 0x80000=0xaa0adf97
+debug.wexdmc: 0 -> 1
+적재 후 ~5초: kernel_task %
+적재 후 ~15초: kernel_task %
+적재 후 ~30초: kernel_task %
+적재 후 ~45초: kernel_task %

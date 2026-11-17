@@ -1,0 +1,2 @@
+# mx450-power-policy: 배터리 사용 중 — 어떤 프로세스도 NVIDIA 장치를 받지 않는다 (규칙 없음)
+# 충전기를 연결하면 local.mx450-power-policy 데몬이 allow-ac.txt 내용으로 되돌린다.

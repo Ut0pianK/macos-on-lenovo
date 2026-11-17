@@ -1,0 +1,7 @@
+# 2026-11-14 16:14:38 시작 Now drawing from 'Battery Power'
+화면켬 l1ss=0: PC8 37.05 PC10 0.00 pkg 2.14W | 배터리 8.84W | 손 뗀 지 1s (사용 중: 이 구간 제외) | 'Battery Power'
+화면켬 l1ss=3: PC8 46.13 PC10 0.00 pkg 1.79W | 배터리 8.95W | 손 뗀 지 7s (사용 중: 이 구간 제외) | 'Battery Power'
+화면켬 l1ss=0: PC8 49.98 PC10 0.00 pkg 1.86W | 배터리 10.29W | 손 뗀 지 24s (사용 중: 이 구간 제외) | 'Battery Power'
+화면켬 l1ss=3: PC8 54.62 PC10 0.00 pkg 1.63W | 배터리 8.40W | 손 뗀 지 0s (사용 중: 이 구간 제외) | 'Battery Power'
+화면켬 l1ss=0: PC8 18.82 PC10 0.00 pkg 3.45W | 배터리 12.26W | 손 뗀 지 7s (사용 중: 이 구간 제외) | 'Battery Power'
+화면켬 l1ss=3: PC8 30.07 PC10 0.00 pkg 2.56W | 배터리 12.59W | 손 뗀 지 64s (사용 중: 이 구간 제외) | 'Battery Power'

@@ -1,0 +1,7 @@
+
+	disabled services = {
+		"com.apple.Siri.agent" => disabled
+		"com.apple.FolderActionsDispatcher" => disabled
+		"com.apple.appleseed.seedusaged.postinstall" => disabled
+		"com.apple.ScriptMenuApp" => disabled
+	}

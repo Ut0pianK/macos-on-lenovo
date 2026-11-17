@@ -1,0 +1,26 @@
+PID   COMMAND          %CPU POWER IDLEW #TH
+732   2.1.325          2.5  3.3   6497+ 22 
+227   airportd         1.6  1.7   575+  17 
+628   iStat Menus Stat 1.2  1.3   739+  5  
+506   ControlCenter    1.1  1.3   1177+ 8  
+589   com.apple.dock.e 1.1  1.1   128+  4  
+210   WindowServer     0.9  1.3   2864+ 10 
+214   loginwindow      0.9  1.4   1327+ 4  
+167   bluetoothd       0.6  0.7   107+  9  
+496   ContinuityCaptur 0.5  0.5   44+   4  
+325   iStatMenusDaemon 0.4  0.5   183+  3  
+577   replicatord      0.3  0.3   38+   2  
+2958  top              0.2  0.2   1+    1/1
+1     launchd          0.2  0.2   17+   3  
+220   runningboardd    0.2  0.2   46+   5  
+618   bash             0.2  0.2   0     1  
+373   sysmond          0.2  0.2   21+   2  
+100   logd             0.2  0.2   34+   4  
+304   audioclocksyncd  0.1  0.1   4+    3  
+226   symptomsd        0.1  0.1   39+   3  
+168   notifyd          0.1  0.1   2     2  
+378   searchpartyd     0.1  0.1   20+   5  
+143   opendirectoryd   0.1  0.1   4     8  
+150   locationd        0.1  0.1   202+  5  
+330   bash             0.1  0.1   0     1  
+540   sharingd         0.1  0.1   65+   2  

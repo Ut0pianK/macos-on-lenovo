@@ -1,0 +1,241 @@
+diff --git a/Lilu/Headers/kern_user.hpp b/Lilu/Headers/kern_user.hpp
+index ef64a59..799ab2b 100644
+--- a/Lilu/Headers/kern_user.hpp
++++ b/Lilu/Headers/kern_user.hpp
+@@ -630,6 +630,34 @@ private:
+ 	 */
+ 	static constexpr const char *venturaSharedCacheLegacy {"/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/dyld_shared_cache_x86_64"};
+ 
++	/**
++	 *  Set on macOS 11 and newer, where Lilu starts before the root volume is mounted, system libraries
++	 *  only exist in dyld shared cache, and shared region kernel interfaces differ.
++	 *  In this mode binary patches are applied to pages at code signature validation time with
++	 *  a plain find & replace, and legacy process memory rewriting is not performed.
++	 *  New members are kept at the end of the class to preserve the layout.
++	 */
++	bool modernMode {false};
++
++	/**
++	 *  Original cs_validate_page trampoline for macOS 11 and newer (different prototype)
++	 */
++	mach_vm_address_t orgCodeSignValidatePageModern {};
++
++	/**
++	 *  cs_validate_page wrapper for macOS 11 and newer
++	 */
++	static void codeSignValidatePageModern(void *vp, memory_object_t pager, memory_object_offset_t page_offset, const void *data, int *validated_p, int *tainted_p, int *nx_p);
++
++	/**
++	 *  Applies binary patches to validated pages on macOS 11 and newer
++	 *
++	 *  @param vp        vnode the pages belong to
++	 *  @param data_ptr  pages in kernel memory
++	 *  @param data_size data size
++	 */
++	void performModernPagePatch(void *vp, const void *data_ptr, size_t data_size);
++
+ };
+ 
+ #endif /* kern_user_hpp */
+diff --git a/Lilu/Sources/kern_start.cpp b/Lilu/Sources/kern_start.cpp
+index ec7198c..0cd592b 100644
+--- a/Lilu/Sources/kern_start.cpp
++++ b/Lilu/Sources/kern_start.cpp
+@@ -244,8 +244,8 @@ bool Configuration::getBootArguments() {
+ 
+ 	betaForAll = checkKernelArgument(bootargBetaAll);
+ 	debugForAll = checkKernelArgument(bootargDebugAll);
+-	isUserDisabled = checkKernelArgument(bootargUserOff) ||
+-		getKernelVersion() <= KernelVersion::SnowLeopard || getKernelVersion() >= KernelVersion::BigSur;
++	// User patcher is no longer force-disabled on macOS 11+, it runs in page patching mode there (see kern_user.cpp).
++	isUserDisabled = checkKernelArgument(bootargUserOff) || getKernelVersion() <= KernelVersion::SnowLeopard;
+ 
+ 	lilu_get_boot_args(bootargDelay, &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
+ 
+diff --git a/Lilu/Sources/kern_user.cpp b/Lilu/Sources/kern_user.cpp
+index 695b9f1..3cb0fc4 100644
+--- a/Lilu/Sources/kern_user.cpp
++++ b/Lilu/Sources/kern_user.cpp
+@@ -18,6 +18,8 @@
+ #include <kern/task.h>
+ #include <kern/cs_blobs.h>
+ #include <sys/vm.h>
++#include <sys/vnode.h>
++#include <sys/syslimits.h>
+ 
+ static UserPatcher *that {nullptr};
+ 
+@@ -38,7 +40,9 @@ kern_return_t UserPatcher::vmProtect(vm_map_t map, vm_offset_t start, vm_size_t
+ 	//    vm.cs_force_kill in the future.
+ 	auto currproc = reinterpret_cast<procref *>(current_proc());
+ 	if ((new_protection & (VM_PROT_EXECUTE|VM_PROT_WRITE)) == (VM_PROT_EXECUTE|VM_PROT_WRITE) &&
+-		getKernelVersion() >= KernelVersion::Mojave && currproc != nullptr) {
++		getKernelVersion() >= KernelVersion::Mojave && !modernMode && currproc != nullptr) {
++		// Note: on macOS 11+ (modernMode) struct proc layout is different (task and p_csflags are gone),
++		// so codesign flags are left untouched there and a plain vm_protect is performed below.
+ 		DBGLOG("user", "found request for W^X switch-off %d", new_protection);
+ 
+ 		// struct proc layout usually changes with time, so we will calculate the offset based on partial layout:
+@@ -109,7 +113,9 @@ bool UserPatcher::init(KernelPatcher &kernelPatcher, bool preferSlowMode) {
+ 	}
+ 
+ 	that = this;
+-	patchDyldSharedCache = !preferSlowMode;
++	// On macOS 11+ shared region interfaces changed and files cannot be read this early, use page patching.
++	modernMode = getKernelVersion() >= KernelVersion::BigSur;
++	patchDyldSharedCache = !preferSlowMode && !modernMode;
+ 	patcher = &kernelPatcher;
+ 
+ 	pending.init();
+@@ -144,6 +150,18 @@ bool UserPatcher::registerPatches(ProcInfo **procs, size_t procNum, BinaryModInf
+ 		}
+ 	}
+ 
++	if (modernMode) {
++		// No file access here: root is not mounted yet. Pages are matched by vnode path later.
++		if (!hookMemoryAccess()) {
++			SYSLOG("user", "failed to hook memory access, user patches are disabled");
++			procInfoSize = 0;
++			binaryModSize = 0;
++			return false;
++		}
++		DBGLOG("user", "registered %lu procs and %lu mods in page patching mode", procInfoSize, binaryModSize);
++		return true;
++	}
++
+ 	return loadFilesForPatching() && (!patchDyldSharedCache || loadDyldSharedCacheMapping()) && loadLookups() && hookMemoryAccess();
+ }
+ 
+@@ -267,12 +285,66 @@ boolean_t UserPatcher::codeSignValidatePageWrapper(void *blobs, memory_object_t
+ boolean_t UserPatcher::codeSignValidateRangeWrapper(void *blobs, memory_object_t pager, memory_object_offset_t range_offset, const void *data, memory_object_size_t data_size, unsigned *tainted) {
+ 	boolean_t res = FunctionCast(codeSignValidateRangeWrapper, that->orgCodeSignValidateRangeWrapper)(blobs, pager, range_offset, data, data_size, tainted);
+ 
++	if (that->modernMode) {
++		// The first argument is a vnode on macOS 11+.
++		that->performModernPagePatch(blobs, data, (size_t)data_size);
++		return res;
++	}
++
+ 	if (res)
+ 		that->performPagePatch(data, (size_t)data_size);
+ 
+ 	return res;
+ }
+ 
++void UserPatcher::codeSignValidatePageModern(void *vp, memory_object_t pager, memory_object_offset_t page_offset, const void *data, int *validated_p, int *tainted_p, int *nx_p) {
++	FunctionCast(codeSignValidatePageModern, that->orgCodeSignValidatePageModern)(vp, pager, page_offset, data, validated_p, tainted_p, nx_p);
++	that->performModernPagePatch(vp, data, PAGE_SIZE);
++}
++
++__attribute__((noinline)) void UserPatcher::performModernPagePatch(void *vp, const void *data_ptr, size_t data_size) {
++	if (binaryModSize == 0 || !vp || !data_ptr || data_size == 0)
++		return;
++
++	char path[PATH_MAX];
++	int pathlen = PATH_MAX;
++	if (vn_getpath(static_cast<vnode_t>(vp), path, &pathlen) != 0)
++		return;
++
++	// Libraries residing in dyld shared cache do not exist on disk, their pages come from the cache files.
++	bool sharedCache = matchSharedCachePath(path);
++	const char *filePath = path;
++	static const char dataVolume[] = "/System/Volumes/Data/";
++	if (!sharedCache && !strncmp(path, dataVolume, sizeof(dataVolume) - 1))
++		filePath = path + sizeof(dataVolume) - 2;
++
++	for (size_t i = 0; i < binaryModSize; i++) {
++		auto mod = binaryMod[i];
++		if (!mod || !mod->path || !mod->patches)
++			continue;
++
++		if (sharedCache) {
++			if (strncmp(mod->path, "/System/Library/", strlen("/System/Library/")) &&
++				strncmp(mod->path, "/System/iOSSupport/", strlen("/System/iOSSupport/")) &&
++				strncmp(mod->path, "/usr/lib/", strlen("/usr/lib/")))
++				continue;
++		} else if (strcmp(filePath, mod->path)) {
++			continue;
++		}
++
++		for (size_t p = 0; p < mod->count; p++) {
++			auto &patch = mod->patches[p];
++			// Skip counting is file-wide and cannot be honoured per page, so such patches are not applied.
++			if (patch.section == ProcInfo::SectionDisabled || (patch.flags & LocalOnly) || patch.cpu != CPU_TYPE_X86_64 ||
++				patch.skip != 0 || patch.size == 0 || patch.size > data_size || !patch.find || !patch.replace)
++				continue;
++
++			if (UNLIKELY(KernelPatcher::findAndReplace(const_cast<void *>(data_ptr), data_size, patch.find, patch.size, patch.replace, patch.size)))
++				DBGLOG("user", "patched %s page with patch %lu of %s", path, p, mod->path);
++		}
++	}
++}
++
+ void UserPatcher::onPath(const char *path, uint32_t len) {
+ 	if (len >= currentMinProcLength) {
+ 		for (uint32_t i = 0; i < procInfoSize; i++) {
+@@ -322,6 +394,13 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
+ }
+ 
+ void UserPatcher::patchBinary(vm_map_t map, const char *path, uint32_t len) {
++	if (modernMode) {
++		// No __RESTRICT injection or shared cache rewriting on macOS 11+, binary patches are applied to pages.
++		if (userCallback.first)
++			userCallback.first(userCallback.second, *this, map, path, len);
++		return;
++	}
++
+ 	if (patchDyldSharedCache && sharedCacheSlideStored) {
+ 		patchSharedCache(map, storedSharedCacheSlide, CPU_TYPE_X86_64);
+ 	} else {
+@@ -1055,6 +1134,23 @@ vm_prot_t UserPatcher::getPageProtection(vm_map_t map, vm_map_address_t addr) {
+ }
+ 
+ bool UserPatcher::hookMemoryAccess() {
++	if (modernMode) {
++		// Only hook code signature validation when there are binary patches to apply.
++		if (binaryModSize > 0) {
++			KernelPatcher::RouteRequest pageRoute {"_cs_validate_page", codeSignValidatePageModern, orgCodeSignValidatePageModern};
++			if (!patcher->routeMultipleLong(KernelPatcher::KernelID, &pageRoute, 1)) {
++				SYSLOG("user", "failed to hook _cs_validate_page");
++				patcher->clearError();
++				return false;
++			}
++
++			KernelPatcher::RouteRequest rangeRoute {"_cs_validate_range", codeSignValidateRangeWrapper, orgCodeSignValidateRangeWrapper};
++			if (!patcher->routeMultipleLong(KernelPatcher::KernelID, &rangeRoute, 1)) {
++				SYSLOG("user", "failed to hook _cs_validate_range, compressed binaries may not be patched");
++				patcher->clearError();
++			}
++		}
++	} else {
+ 	// 10.12 and newer
+ 	KernelPatcher::RouteRequest rangeRoute {"_cs_validate_range", codeSignValidateRangeWrapper, orgCodeSignValidateRangeWrapper};
+ 	if (!patcher->routeMultipleLong(KernelPatcher::KernelID, &rangeRoute, 1)) {
+@@ -1064,6 +1160,7 @@ bool UserPatcher::hookMemoryAccess() {
+ 			return false;
+ 		}
+ 	}
++	}
+ 
+ 	orgCurrentMap = reinterpret_cast<t_currentMap>(patcher->solveSymbol(KernelPatcher::KernelID, "_current_map"));
+ 	if (patcher->getError() != KernelPatcher::Error::NoError) {
+@@ -1116,7 +1213,18 @@ bool UserPatcher::hookMemoryAccess() {
+ 
+ 	// On 10.12.1 b4 Apple decided not to let current_map point to the current process
+ 	// For this reason we have to obtain the map with the other methods
+-	if (getKernelVersion() >= KernelVersion::Sierra) {
++	if (modernMode) {
++		// Process callbacks need the new task map, which is only available through this hook.
++		if (procInfoSize > 0) {
++			KernelPatcher::RouteRequest request {"_task_set_main_thread_qos", taskSetMainThreadQos, orgTaskSetMainThreadQos};
++			if (!patcher->routeMultipleLong(KernelPatcher::KernelID, &request, 1) || !orgTaskSetMainThreadQos) {
++				SYSLOG("user", "failed to hook _task_set_main_thread_qos");
++				patcher->clearError();
++				orgTaskSetMainThreadQos = 0;
++				return false;
++			}
++		}
++	} else if (getKernelVersion() >= KernelVersion::Sierra) {
+ 		KernelPatcher::RouteRequest request {"_task_set_main_thread_qos", taskSetMainThreadQos, orgTaskSetMainThreadQos};
+ 		if (!patcher->routeMultiple(KernelPatcher::KernelID, &request, 1, 0, 0, true, false)) {
+ 			DBGLOG("user", "failed to hook _task_set_main_thread_qos");

@@ -1,0 +1,69 @@
+--- kern_userpatch.hpp.pre-safarilist	2026-11-15 10:40:32
++++ src/WhateverXe/kern_userpatch.hpp	2026-11-17 08:47:08
+@@ -245,6 +245,56 @@
+ 		SYSLOG("wex", "userpatch: registered the Dock legacy Launchpad mod");
+ 	else
+ 		SYSLOG("wex", "userpatch: failed to register the Dock legacy Launchpad mod (%d)", err);
++}
++
++// Safari 27.2 on macOS 26.7.2 (Safari.framework in the App cryptex, x86_64 slice): the address-bar completion
++// window and the AutoFill completion window hard-code +shouldUseGlassBackdropView = YES, so
++// -[RoundedWindow _createBackdropViewWithContentRect:] creates an NSGlassView. With Liquid Glass (SwiftUI/Solarium)
++// turned off that view draws nothing and the list is transparent. Safari is signed with library validation, so a
++// user-space dylib cannot be inserted. Return NO instead: Safari's own pre-Tahoe NSVisualEffectView path is used.
++// CompletionListWindow (offset 0x7b68b0): the ObjC entry and the Swift getter behind it; the pattern runs into the
++// next function to stay unique.
++static const uint8_t safariListFind[] {
++	0x55, 0x48, 0x89, 0xe5, 0xb8, 0x01, 0x00, 0x00, 0x00, 0x5d, 0xc3, 0x0f, 0x1f, 0x44, 0x00, 0x00,
++	0x55, 0x48, 0x89, 0xe5, 0xb0, 0x01, 0x5d, 0xc3, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00,
++	0x55, 0x48, 0x89, 0xe5, 0xb0, 0x01, 0x5d, 0xc3};
++static const uint8_t safariListRepl[] {
++	0x55, 0x48, 0x89, 0xe5, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x5d, 0xc3, 0x0f, 0x1f, 0x44, 0x00, 0x00,
++	0x55, 0x48, 0x89, 0xe5, 0xb0, 0x00, 0x5d, 0xc3, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00,
++	0x55, 0x48, 0x89, 0xe5, 0xb0, 0x01, 0x5d, 0xc3};
++// +[AutoFillCompletionWindow shouldUseGlassBackdropView] (offset 0x13fd21), followed by
++// -_hasActiveAppearanceIgnoringKeyFocus and the head of -[AutoFillDisplayData initWithLabel:values:].
++static const uint8_t safariFillFind[] {
++	0x55, 0x48, 0x89, 0xe5, 0xb8, 0x01, 0x00, 0x00, 0x00, 0x5d, 0xc3, 0x55, 0x48, 0x89, 0xe5, 0xb8,
++	0x01, 0x00, 0x00, 0x00, 0x5d, 0xc3, 0x55, 0x48, 0x89, 0xe5, 0x48, 0x8b, 0x35, 0x46, 0xca, 0xad,
++	0x00, 0x45, 0x31, 0xc0, 0x45, 0x31, 0xc9};
++static const uint8_t safariFillRepl[] {
++	0x55, 0x48, 0x89, 0xe5, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x5d, 0xc3, 0x55, 0x48, 0x89, 0xe5, 0xb8,
++	0x01, 0x00, 0x00, 0x00, 0x5d, 0xc3, 0x55, 0x48, 0x89, 0xe5, 0x48, 0x8b, 0x35, 0x46, 0xca, 0xad,
++	0x00, 0x45, 0x31, 0xc0, 0x45, 0x31, 0xc9};
++static_assert(sizeof(safariListFind) == sizeof(safariListRepl), "patch size mismatch");
++static_assert(sizeof(safariFillFind) == sizeof(safariFillRepl), "patch size mismatch");
++
++static UserPatcher::BinaryModPatch safariPatches[] {
++	{CPU_TYPE_X86_64, 0, safariListFind, safariListRepl, sizeof(safariListFind), 0, 1, UserPatcher::FileSegment::SegmentTextText, 1},
++	{CPU_TYPE_X86_64, 0, safariFillFind, safariFillRepl, sizeof(safariFillFind), 0, 1, UserPatcher::FileSegment::SegmentTextText, 1},
++};
++
++// The framework lives in the App cryptex; both spellings of its path are registered.
++static UserPatcher::BinaryModInfo safariMods[] {
++	{"/System/Volumes/Preboot/Cryptexes/App/System/Library/StagedFrameworks/Safari/Safari.framework/Versions/A/Safari", safariPatches, arrsize(safariPatches)},
++	{"/System/Cryptexes/App/System/Library/StagedFrameworks/Safari/Safari.framework/Versions/A/Safari", safariPatches, arrsize(safariPatches)},
++};
++
++static inline void registerSafariListIfRequested() {
++	if (!checkKernelArgument("-wex-safarilist"))
++		return;
++
++	auto err = lilu.onProcLoad(nullptr, 0, nullptr, nullptr, safariMods, arrsize(safariMods));
++	if (err == LiluAPI::Error::NoError)
++		SYSLOG("wex", "userpatch: registered the Safari completion list backdrop mod");
++	else
++		SYSLOG("wex", "userpatch: failed to register the Safari completion list backdrop mod (%d)", err);
+ }
+ 
+ }
+--- kern_start.cpp.pre-safarilist	2026-11-16 15:04:49
++++ src/WhateverXe/kern_start.cpp	2026-11-17 08:46:59
+@@ -41,6 +41,7 @@
+ 	[]() {
+ 		XeUserPatch::registerIfRequested();
+ 		XeUserPatch::registerLaunchpadIfRequested();
++		XeUserPatch::registerSafariListIfRequested();
+ 		host.init();
+ 		WEXGraphicsActivation::publish();
+ 	}

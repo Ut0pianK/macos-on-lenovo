@@ -1,0 +1,101 @@
+#!/bin/sh
+# 터보부스트 제어 (MSR 0x1A0 bit 38, DisableTurboBoost.kext 로드 = 터보 끔)
+#   배터리            -> 터보 끔
+#   ALWAYS_OFF=1 (conf) -> 전원과 상관없이 항상 터보 끔 (2026-11-13 사용자 요청)
+#   충전기            -> 터보 켬. 단 CPU 온도가 HOT 이상으로 HOT_SEC초 이어지면 끄고,
+#                        최소 HOLD초가 지난 뒤 COOL 이하로 COOL_SEC초 이어지면 다시 켠다.
+# 설정: /usr/local/etc/turbo-ac.conf (HOT=65 COOL=55 HOLD=300 형식, 없으면 기본값)
+#   EPP_AC=64 EPP_BATT=192 : 전원별 EPP (아래 루프 끝 참고)
+# /Library/LaunchDaemons/local.turbo-ac.plist 가 root로 실행한다.
+# 제거: sudo launchctl bootout system/local.turbo-ac
+#       (터보를 항상 켜려면 추가로 sudo kmutil unload -b com.rugarciap.DisableTurboBoost)
+
+LOG=/var/log/turbo-ac.log
+MARK=/var/db/turbo-off.pending
+K=/Library/Extensions/DisableTurboBoost.kext
+ID=com.rugarciap.DisableTurboBoost
+CONF=/usr/local/etc/turbo-ac.conf
+TEMP=/usr/local/bin/cputemp
+POLL=5
+
+log() { echo "$(/bin/date '+%F %T') $*" >> "$LOG"; }
+loaded() { /usr/bin/kmutil showloaded 2>/dev/null | /usr/bin/grep -q "$ID"; }
+on_ac() {
+    /usr/sbin/ioreg -r -n AppleSmartBattery -d 1 2>/dev/null |
+        /usr/bin/grep -q '"ExternalConnected" = Yes'
+}
+conf() {   # conf 이름 기본값 최소 최대 : 숫자만 받아들인다
+    v=$(/usr/bin/sed -n "s/^$1=\([0-9][0-9]*\).*/\1/p" "$CONF" 2>/dev/null | /usr/bin/head -1)
+    case "$v" in ''|*[!0-9]*) v=$2;; esac
+    [ "$v" -lt "$3" ] && v=$3; [ "$v" -gt "$4" ] && v=$4
+    echo "$v"
+}
+turbo_off() {   # $1 = 이유
+    if loaded; then log "$1 -> turbo OFF (already)"; return; fi
+    /usr/bin/touch "$MARK"; /bin/sync
+    out=$(/usr/bin/kmutil load -p "$K" 2>&1); rc=$?
+    /bin/sleep 2
+    /bin/rm -f "$MARK"; /bin/sync
+    log "$1 -> turbo OFF (load rc=$rc ${out})"
+}
+turbo_on() {
+    if loaded; then
+        out=$(/usr/bin/kmutil unload -b "$ID" 2>&1); rc=$?
+        log "$1 -> turbo ON (unload rc=$rc ${out})"
+    else log "$1 -> turbo ON (already)"; fi
+}
+
+# 지난번 로드 도중 시스템이 죽었다면(표식이 남아 있음) 더 건드리지 않는다.
+if [ -f "$MARK" ]; then
+    log "previous load did not finish (crash?) -> doing nothing. remove $MARK to retry"
+    exit 0
+fi
+
+# (2026-11-14) 종료·재시동 때 launchd 가 TERM 을 보낸다: DMC(디스플레이 펌웨어)를 지워 둔다.
+#  DMC 가 올라간 채 재시동하면 다음 부팅에서 오디오 드라이버가 CPU 70% 로 도는 문제가 있어서(커널 쪽에도 같은 처리가 있음, 이중 안전).
+trap '/usr/sbin/sysctl -w debug.wexdmc=0 >/dev/null 2>&1; log "TERM: DMC unload"; exit 0' TERM
+log "started (pid $$)"
+last=""        # 마지막으로 적용한 상태: on | off
+laste=""       # 마지막으로 쓴 EPP
+l1done=""      # L1SS 를 이번 부팅에 썼는가
+hot=0          # 1 = 온도 때문에 터보를 꺼 둔 상태
+hotn=0; cooln=0; held=0
+while :; do
+    HOT=$(conf HOT 65 50 95); COOL=$(conf COOL 55 40 90); HOLD=$(conf HOLD 300 30 3600)
+    HOT_SEC=$(conf HOT_SEC 20 5 600); COOL_SEC=$(conf COOL_SEC 60 5 1800)
+    [ "$COOL" -ge "$HOT" ] && COOL=$((HOT - 5))
+    if [ "$(conf ALWAYS_OFF 0 0 1)" = 1 ]; then
+        want=off; why="always-off"; hot=0; hotn=0
+    elif on_ac; then
+        t=$("$TEMP" 2>/dev/null); case "$t" in ''|*[!0-9]*) t=0;; esac
+        if [ "$hot" = 0 ]; then
+            if [ "$t" -ge "$HOT" ]; then hotn=$((hotn + POLL)); else hotn=0; fi
+            if [ "$hotn" -ge "$HOT_SEC" ]; then hot=1; held=0; cooln=0; why="AC ${t}C >= ${HOT}C"; fi
+        else
+            held=$((held + POLL))
+            if [ "$t" -gt 0 ] && [ "$t" -le "$COOL" ]; then cooln=$((cooln + POLL)); else cooln=0; fi
+            if [ "$held" -ge "$HOLD" ] && [ "$cooln" -ge "$COOL_SEC" ]; then hot=0; hotn=0; why="AC ${t}C <= ${COOL}C"; fi
+        fi
+        if [ "$hot" = 1 ]; then want=off; else want=on; [ -z "${why:-}" ] && why="AC"; fi
+    else
+        want=off; why="battery"; hot=0; hotn=0
+    fi
+    if [ "$want" != "$last" ]; then
+        if [ "$want" = on ]; then turbo_on "$why"; else turbo_off "$why"; fi
+        last=$want
+    fi
+    # EPP (2026-11-14): macOS(XCPM)의 기본 EPP 를 전원에 따라 바꾼다. WhateverXe 의 sysctl debug.wexepp 가 XCPM 의 "epp" 자리에 쓴다.
+    #  conf: EPP_AC / EPP_BATT (1~255, 0 = 건드리지 않음). 작을수록 성능, 클수록 절전. macOS 기본은 128.
+    if on_ac; then e=$(conf EPP_AC 0 0 255); else e=$(conf EPP_BATT 0 0 255); fi
+    if [ "$e" != 0 ] && [ "$e" != "$laste" ]; then
+        if /usr/sbin/sysctl -w debug.wexepp="$e" >/dev/null 2>&1; then log "EPP -> $e"; laste=$e; fi
+    fi
+    # PCIe L1 하위 상태(2026-11-14): conf 의 L1SS=1|2|3 (1 SD 리더, 2 NVMe, 3 둘 다). 부팅마다 한 번 WhateverXe 의 debug.wexl1ss 에 쓴다.
+    if [ -z "$l1done" ]; then
+        l=$(conf L1SS 0 0 3)
+        if [ "$l" = 0 ]; then l1done=1
+        elif /usr/sbin/sysctl -w debug.wexl1ss="$l" >/dev/null 2>&1; then log "L1SS -> $l"; l1done=1; fi
+    fi
+    why=""
+    /bin/sleep "$POLL" & wait $!
+done

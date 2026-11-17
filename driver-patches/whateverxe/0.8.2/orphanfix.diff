@@ -1,0 +1,210 @@
+--- ../src/WhateverXe/kern_xe.cpp	2026-11-17 09:10:54
++++ WhateverXe/kern_xe.cpp	2026-11-17 11:08:30
+@@ -1581,15 +1581,27 @@
+ static thread_call_t wexHangNvCall;
+ static int wexHangNvResult;
+ static IOReturn wexHangNvSyncRet = kIOReturnSuccess;
+-static void wexHangNvFlush(thread_call_param_t, thread_call_param_t test) {
++// Orphan stamp records (see wexOrphanCheck), NVRAM variable "wex-orphan": u32 magic 'WEXO', version, record count,
++// values per record, then per record: calendar seconds, idx | engine << 8 | action << 16, hw stamp, current stamp,
++// submitted stamp, hw stamp after the action, engine wait mask lo/hi, software queue head, tail.
++static constexpr uint32_t WexOrphanNvMax = 8, WexOrphanNvVals = 10;
++static uint32_t wexOrphanNvBuf[4 + WexOrphanNvMax * WexOrphanNvVals] {0x4F584557, 1, 0, WexOrphanNvVals};
++static volatile uint32_t wexOrphanNvReserved, wexOrphanNvCount;
++static thread_call_t wexOrphanNvCall;
++// mode: param0 (set at allocation) or param1; 0 hang records, 1 test record, 2 orphan records.
++static void wexHangNvFlush(thread_call_param_t mode0, thread_call_param_t mode1) {
++	const uintptr_t mode = mode0 ? reinterpret_cast<uintptr_t>(mode0) : reinterpret_cast<uintptr_t>(mode1);
++	const bool test = mode == 1;
+ 	auto opts = IORegistryEntry::fromPath("/options", gIODTPlane);
+ 	if (!opts) { wexHangNvResult = 3; return; }
+ 	uint32_t cnt = __atomic_load_n(&wexHangNvCount, __ATOMIC_ACQUIRE); if (cnt > WexHangNvMax) cnt = WexHangNvMax;
+-	const char *key = test ? "wex-hang-test" : "wex-hang";
++	uint32_t ocnt = __atomic_load_n(&wexOrphanNvCount, __ATOMIC_ACQUIRE); if (ocnt > WexOrphanNvMax) ocnt = WexOrphanNvMax;
++	const char *key = test ? "wex-hang-test" : mode == 2 ? "wex-orphan" : "wex-hang";
+ 	clock_sec_t sec = 0; clock_usec_t usec = 0; clock_get_calendar_microtime(&sec, &usec);
+ 	const uint32_t probe[] {0x54584557, static_cast<uint32_t>(sec)};
+-	wexHangNvBuf[2] = cnt;
++	wexHangNvBuf[2] = cnt; wexOrphanNvBuf[2] = ocnt;
+ 	auto data = test ? OSData::withBytes(probe, sizeof(probe))
++		: mode == 2 ? OSData::withBytes(wexOrphanNvBuf, static_cast<unsigned int>((4 + ocnt * WexOrphanNvVals) * sizeof(uint32_t)))
+ 		: OSData::withBytes(wexHangNvBuf, static_cast<unsigned int>((4 + cnt * (1 + WexHangNvVals)) * sizeof(uint32_t)));
+ 	bool ok = false;
+ 	if (data) {
+@@ -1602,8 +1614,10 @@
+ 			}
+ 			name->release();
+ 		}
+-		wexHangNvSyncRet = sr;
++		if (mode == 2) ok = ok && sr == kIOReturnSuccess;
++		else wexHangNvSyncRet = sr;
+ 	}
++	if (mode == 2) { IORegistryEntry::getRegistryRoot()->setProperty("WhateverXeOrphanNvram", ok); opts->release(); return; }
+ 	wexHangNvResult = ok ? (wexHangNvSyncRet == kIOReturnSuccess ? 1 : 4) : 2;
+ 	IORegistryEntry::getRegistryRoot()->setProperty("WhateverXeHangProbeNvram", ok);
+ 	IORegistryEntry::getRegistryRoot()->setProperty("WhateverXeHangProbeNvramSync", static_cast<unsigned long long>(static_cast<uint32_t>(wexHangNvSyncRet)), 32);
+@@ -1628,12 +1642,128 @@
+ 	return 0;
+ }
+ SYSCTL_PROC(_debug, OID_AUTO, wexhangtest, CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_LOCKED, nullptr, 0, wexHangTestSysctl, "I", "write 1: store a test record in NVRAM variable wex-hang-test; reads the last NVRAM write result");
++
++// Orphan stamp completion (2026-11-17, on unless -wex-noorphanfix). The freezes of 2026-11-16/17 all ended with
++// IGAccelEventMachine::eventTimeout answering NULL for reason 4: the stuck stamp's engine made no context switch for
++// ~2.5 s and has no context in its execlist ports, so IOAccelEventMachine2::restart_channel finds no channel to reset,
++// and a waiter (IOAccelCommandQueue::stop -> finishEvent, holding the accelerator lock) loops forever.
++// IGScheduler5 keeps one software queue per stamp index (sched+0xaa0+idx*8: head +0x4040, tail +0x4048, filled by
++// IGScheduler5::push) and, per engine, a mask of stamp indexes blocked on another stamp (IGHardwareCommandStreamer5
++// +0x3c0, evalWaitQueue/evalWorkQueues). When reason 4 repeats for the same index >= 4 s apart with the hardware and
++// current stamp unchanged, the index's software queue empty and its wait bit clear, the work is neither running,
++// queued nor waiting: it is lost. The stamp is then completed the way Apple's eventTimeout completes a timed-out display
++// stamp (reason 1): IntelAccelerator::signalDisplayStampUpdate(idx, getStamp(idx)) writes the stamp slot (base +
++// idx*64), notifies the engines that have waiters, updates the stamp cache, signalStamp()s the sleepers and posts
++// signalStampsUpdated - from the same eventTimeout context. The lost job is dropped instead of freezing the session.
++// A queued or waiting index only gets IGScheduler5::notify(cs) (what push does after queueing); it should follow once
++// the stamp it depends on completes. Layout from AppleIntelTGLGraphics 16.0.32 / IOAcceleratorFamily2 25G332; offsets
++// are guarded by symbol address + prologue checks at route time and runtime identity checks (IGScheduler5 class, stamp
++// pointer = base + idx*64). Records go to NVRAM variable "wex-orphan" (at most 8 per boot).
++static mach_vm_address_t orgTGLEncodeDebugInfo, tglSignalDisplayStamp, tglSchedNotify;
++static const uint8_t *tglStampLut;
++static bool wexOrphanReady;
++struct WexEtSlot { void *th; int reason; };
++static WexEtSlot wexEtSlots[4];
++static uint64_t wrapTGLEncodeDebugInfo(void *accel, int reason) {
++	void *self = current_thread();
++	for (auto &s : wexEtSlots) if (__atomic_load_n(&s.th, __ATOMIC_ACQUIRE) == self) { s.reason = reason; break; }
++	return FunctionCast(wrapTGLEncodeDebugInfo, orgTGLEncodeDebugInfo)(accel, reason);
++}
++struct WexOrphanState { uint32_t hw, cur; uint64_t ns; uint32_t logged; };
++static WexOrphanState wexOrphanState[64];
++static volatile uint32_t wexOrphanForced;
++static void *wexOrphanSched;
++template <typename T> static inline T wexAt(const void *p, uint32_t off) {
++	return *reinterpret_cast<const volatile T *>(static_cast<const uint8_t *>(p) + off);
++}
++static void wexOrphanRecord(int idx, uint32_t cs, uint32_t action, uint32_t hw, uint32_t cur, uint32_t sub, uint32_t hwAfter,
++	uint64_t waitMask, uint64_t qh, uint64_t qt) {
++	if (!wexOrphanNvCall) return;
++	const uint32_t slot = __atomic_fetch_add(&wexOrphanNvReserved, 1, __ATOMIC_RELAXED);
++	if (slot >= WexOrphanNvMax) return;
++	clock_sec_t sec = 0; clock_usec_t usec = 0; clock_get_calendar_microtime(&sec, &usec);
++	uint32_t *r = &wexOrphanNvBuf[4 + slot * WexOrphanNvVals];
++	r[0] = static_cast<uint32_t>(sec); r[1] = static_cast<uint32_t>(idx) | cs << 8 | action << 16;
++	r[2] = hw; r[3] = cur; r[4] = sub; r[5] = hwAfter;
++	r[6] = static_cast<uint32_t>(waitMask); r[7] = static_cast<uint32_t>(waitMask >> 32);
++	r[8] = static_cast<uint32_t>(qh); r[9] = static_cast<uint32_t>(qt);
++	__atomic_add_fetch(&wexOrphanNvCount, 1, __ATOMIC_RELEASE);
++	thread_call_enter(wexOrphanNvCall);
++}
++// action: 1 completed; skipped because 3 the index waits on another stamp, 4 pending count out of range,
++// 5 per-boot limit reached, 6 the index still has queued work.
++static void wexOrphanCheck(void *em, int idx) {
++	if (idx < 0 || idx >= 64) return;
++	void *accel = wexAt<void *>(em, 0x10);
++	if (!accel || idx >= wexAt<int32_t>(em, 0x30)) return;
++	if (idx >= wexAt<int32_t>(accel, 0x11a0) && idx <= wexAt<int32_t>(accel, 0x11a4)) return;	// display stamp: Apple's path
++	if (wexAt<uint32_t>(accel, 0x1190) & 0x18020) return;	// SCI stamp layout / reason-2 mode: not the layout verified here
++	void *sched = wexAt<void *>(accel, 0x1250);
++	if (!sched) return;
++	if (sched != wexOrphanSched) {
++		auto mc = reinterpret_cast<OSObject *>(sched)->getMetaClass();
++		if (!mc || strcmp(mc->getClassName(), "IGScheduler5")) return;
++		wexOrphanSched = sched;
++	}
++	const uint32_t cs = tglStampLut[idx];
++	if (cs > 5 || !(wexAt<uint64_t>(accel, 0x1300) >> cs & 1)) return;	// IGScheduler5 has engines 0..5
++	void *eng = wexAt<void *>(sched, 0xca0 + cs * 8);
++	void *q = wexAt<void *>(sched, 0xaa0 + static_cast<uint32_t>(idx) * 8);
++	auto stamps = wexAt<volatile uint32_t **>(em, 0x28);
++	auto base = wexAt<uint8_t *>(em, 0x20);
++	if (!eng || !q || !stamps || !base) return;
++	volatile uint32_t *slotp = stamps[idx];
++	if (slotp != reinterpret_cast<volatile uint32_t *>(base + idx * 64)) return;
++	const uint32_t rec = 0xf0 + static_cast<uint32_t>(idx) * 24;
++	const uint32_t hw = *slotp, cur = wexAt<uint32_t>(em, rec + 0xc), sub = wexAt<uint32_t>(em, rec + 0x14);
++	const uint64_t waitMask = wexAt<uint64_t>(eng, 0x3c0), qh = wexAt<uint64_t>(q, 0x4040), qt = wexAt<uint64_t>(q, 0x4048);
++	const int32_t pend = static_cast<int32_t>(cur - hw);
++	auto &st = wexOrphanState[idx];
++	if (pend <= 0) { st.ns = 0; return; }
++	const bool waiting = waitMask >> idx & 1, queued = qh != qt;
++	if (waiting || queued) reinterpret_cast<void (*)(void *, uint32_t)>(tglSchedNotify)(sched, cs);
++	uint64_t now = 0, ns = 0; clock_get_uptime(&now); absolutetime_to_nanoseconds(now, &ns);
++	if (!st.ns || st.hw != hw || st.cur != cur) { st = {hw, cur, ns, 0}; return; }
++	if (ns - st.ns < 4000000000ULL) return;
++	uint32_t action = 0;
++	if (waiting) action = 3;
++	else if (queued) action = 6;
++	else if (pend > 64) action = 4;
++	else if (__atomic_load_n(&wexOrphanForced, __ATOMIC_RELAXED) >= 64) action = 5;
++	if (action) {
++		if (!st.logged) { st.logged = 1; wexOrphanRecord(idx, cs, action, hw, cur, sub, hw, waitMask, qh, qt); }
++		return;
++	}
++	reinterpret_cast<void (*)(void *, int, uint32_t)>(tglSignalDisplayStamp)(accel, idx, cur);
++	const uint32_t n = __atomic_add_fetch(&wexOrphanForced, 1, __ATOMIC_RELAXED);
++	st.ns = 0;
++	wexOrphanRecord(idx, cs, 1, hw, cur, sub, *slotp, waitMask, qh, qt);
++	IORegistryEntry::getRegistryRoot()->setProperty("WhateverXeOrphanFixed", n, 32);
++}
++static int wexOrphanSysctl SYSCTL_HANDLER_ARGS {
++	int v = static_cast<int>(__atomic_load_n(&wexOrphanForced, __ATOMIC_RELAXED));
++	return sysctl_handle_int(oidp, &v, 0, req);
++}
++SYSCTL_PROC(_debug, OID_AUTO, wexorphanfix, CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_LOCKED, nullptr, 0, wexOrphanSysctl, "I", "orphan GPU stamps completed this boot");
++
+ static mach_vm_address_t orgTGLEventTimeout;
+ static volatile uint32_t wexHangProbeCount;
+ static void *wrapTGLEventTimeout(void *em, int idx) {
+ 	uint64_t t0 = 0; clock_get_uptime(&t0);
++	// eventTimeout reports its reason only through IntelAccelerator::encodeDebugInfo; catch it for this thread.
++	WexEtSlot *slot = nullptr;
++	if (wexOrphanReady) {
++		void *self = current_thread();
++		for (auto &s : wexEtSlots) {
++			void *expected = nullptr;
++			if (__atomic_compare_exchange_n(&s.th, &expected, self, false, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)) { s.reason = -1; slot = &s; break; }
++		}
++	}
+ 	void *ret = FunctionCast(wrapTGLEventTimeout, orgTGLEventTimeout)(em, idx);
++	int reason = -1;
++	if (slot) { reason = slot->reason; __atomic_store_n(&slot->th, nullptr, __ATOMIC_RELEASE); }
+ 	if (ret) return ret;
++	if (reason == 4 && em) wexOrphanCheck(em, idx);
+ 	const uint32_t n = __atomic_add_fetch(&wexHangProbeCount, 1, __ATOMIC_RELAXED);
+ 	if (n > 32) return ret;
+ 	uint64_t t1 = 0, ns = 0; clock_get_uptime(&t1); absolutetime_to_nanoseconds(t1 - t0, &ns);
+@@ -13636,6 +13766,35 @@
+ 						sysctl_register_oid(&sysctl__debug_wexhangtest);
+ 				}
+ 				IORegistryEntry::getRegistryRoot()->setProperty("WhateverXeHangProbeRouted",ok);
++				// orphan stamp completion (see wexOrphanCheck); needs the eventTimeout route above
++				bool orphanOK=false;
++				if (ok && !checkKernelArgument("-wex-noorphanfix")) {
++					const char *edSym="__ZN16IntelAccelerator15encodeDebugInfoE15IGTimeoutReason";
++					const char *sdSym="__ZN16IntelAccelerator24signalDisplayStampUpdateEij";
++					const char *nfSym="__ZN12IGScheduler56notifyE10IGHwCsType";
++					const uint8_t edHead[] {0x55,0x48,0x89,0xE5,0x41,0x57,0x41,0x56,0x41,0x55,0x41,0x54,0x53,0x48,0x81,0xEC,0x08,0x04,0,0,0x41,0x89,0xF7,0x49};
++					const uint8_t sdHead[] {0x55,0x48,0x89,0xE5,0x41,0x57,0x41,0x56,0x53,0x50,0x41,0x89,0xD6,0x89,0xF3,0x49,0x89,0xFF,0x48,0x8B,0xBF,0x50,0x01,0};
++					const uint8_t nfHead[] {0x55,0x48,0x89,0xE5,0x41,0x56,0x53,0x49,0x89,0xFE};
++					// IG_STAMP_INDEX_TO_HWCS_LUT: 0-23 RCS, 24-31 1, 32-35 BCS, 36-43 VCS0, 44-51 4, 52-59 5, 60-63 6
++					uint8_t lut[64];
++					for (uint32_t i=0;i<64;i++) lut[i]=i<24?0:i<32?1:i<36?2:i<44?3:i<52?4:i<60?5:6;
++					const auto ed=patcher.solveSymbol<mach_vm_address_t>(index,edSym,address,size); patcher.clearError();
++					const auto sd=patcher.solveSymbol<mach_vm_address_t>(index,sdSym,address,size); patcher.clearError();
++					const auto nf=patcher.solveSymbol<mach_vm_address_t>(index,nfSym,address,size); patcher.clearError();
++					if (size>0xA02D0 && ed==address+0x2E460 && sd==address+0x2AD50 && nf==address+0x37EDC &&
++						!memcmp(reinterpret_cast<void *>(ed),edHead,sizeof(edHead)) &&
++						!memcmp(reinterpret_cast<void *>(sd),sdHead,sizeof(sdHead)) &&
++						!memcmp(reinterpret_cast<void *>(nf),nfHead,sizeof(nfHead)) &&
++						!memcmp(reinterpret_cast<void *>(address+0xA0290),lut,sizeof(lut))) {
++						tglSignalDisplayStamp=sd; tglSchedNotify=nf; tglStampLut=reinterpret_cast<const uint8_t *>(address+0xA0290);
++						KernelPatcher::RouteRequest r[] {{edSym,wrapTGLEncodeDebugInfo,orgTGLEncodeDebugInfo}};
++						orphanOK=patcher.routeMultiple(index,r,arrsize(r),address,size);
++						patcher.clearError();
++						if (orphanOK) orphanOK=(wexOrphanNvCall=thread_call_allocate(wexHangNvFlush,reinterpret_cast<thread_call_param_t>(2)))!=nullptr;
++						if (orphanOK) { sysctl_register_oid(&sysctl__debug_wexorphanfix); wexOrphanReady=true; }
++					}
++				}
++				IORegistryEntry::getRegistryRoot()->setProperty("WhateverXeOrphanFixReady",orphanOK);
+ 			}
+ 			if (checkKernelArgument("-wex-cpustat")) if (auto live=OSSerializer::forTarget(nullptr,wexCpuStatSerialize)) {
+ 				IORegistryEntry::getRegistryRoot()->setProperty("WhateverXeCpuStat",live);live->release();

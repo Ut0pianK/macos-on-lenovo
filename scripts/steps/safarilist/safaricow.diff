@@ -1,0 +1,340 @@
+--- kern_userpatch.hpp.pre-safaricow	2026-11-17 08:47:08
++++ src/WhateverXe/kern_userpatch.hpp	2026-11-17 09:27:09
+@@ -13,6 +13,13 @@
+ 
+ #include <Headers/kern_api.hpp>
+ #include <Headers/kern_user.hpp>
++#include <IOKit/IOLib.h>
++#include <kern/thread_call.h>
++#include <kern/clock.h>
++#include <sys/kauth.h>
++#include <sys/proc.h>
++#include <sys/sysctl.h>
++#include <stdatomic.h>
+ 
+ namespace XeUserPatch {
+ 
+@@ -247,54 +254,281 @@
+ 		SYSLOG("wex", "userpatch: failed to register the Dock legacy Launchpad mod (%d)", err);
+ }
+ 
+-// Safari 27.2 on macOS 26.7.2 (Safari.framework in the App cryptex, x86_64 slice): the address-bar completion
+-// window and the AutoFill completion window hard-code +shouldUseGlassBackdropView = YES, so
+-// -[RoundedWindow _createBackdropViewWithContentRect:] creates an NSGlassView. With Liquid Glass (SwiftUI/Solarium)
+-// turned off that view draws nothing and the list is transparent. Safari is signed with library validation, so a
+-// user-space dylib cannot be inserted. Return NO instead: Safari's own pre-Tahoe NSVisualEffectView path is used.
+-// CompletionListWindow (offset 0x7b68b0): the ObjC entry and the Swift getter behind it; the pattern runs into the
+-// next function to stay unique.
+-static const uint8_t safariListFind[] {
+-	0x55, 0x48, 0x89, 0xe5, 0xb8, 0x01, 0x00, 0x00, 0x00, 0x5d, 0xc3, 0x0f, 0x1f, 0x44, 0x00, 0x00,
+-	0x55, 0x48, 0x89, 0xe5, 0xb0, 0x01, 0x5d, 0xc3, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00,
+-	0x55, 0x48, 0x89, 0xe5, 0xb0, 0x01, 0x5d, 0xc3};
+-static const uint8_t safariListRepl[] {
+-	0x55, 0x48, 0x89, 0xe5, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x5d, 0xc3, 0x0f, 0x1f, 0x44, 0x00, 0x00,
+-	0x55, 0x48, 0x89, 0xe5, 0xb0, 0x00, 0x5d, 0xc3, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00,
+-	0x55, 0x48, 0x89, 0xe5, 0xb0, 0x01, 0x5d, 0xc3};
+-// +[AutoFillCompletionWindow shouldUseGlassBackdropView] (offset 0x13fd21), followed by
+-// -_hasActiveAppearanceIgnoringKeyFocus and the head of -[AutoFillDisplayData initWithLabel:values:].
+-static const uint8_t safariFillFind[] {
+-	0x55, 0x48, 0x89, 0xe5, 0xb8, 0x01, 0x00, 0x00, 0x00, 0x5d, 0xc3, 0x55, 0x48, 0x89, 0xe5, 0xb8,
+-	0x01, 0x00, 0x00, 0x00, 0x5d, 0xc3, 0x55, 0x48, 0x89, 0xe5, 0x48, 0x8b, 0x35, 0x46, 0xca, 0xad,
+-	0x00, 0x45, 0x31, 0xc0, 0x45, 0x31, 0xc9};
+-static const uint8_t safariFillRepl[] {
+-	0x55, 0x48, 0x89, 0xe5, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x5d, 0xc3, 0x55, 0x48, 0x89, 0xe5, 0xb8,
+-	0x01, 0x00, 0x00, 0x00, 0x5d, 0xc3, 0x55, 0x48, 0x89, 0xe5, 0x48, 0x8b, 0x35, 0x46, 0xca, 0xad,
+-	0x00, 0x45, 0x31, 0xc0, 0x45, 0x31, 0xc9};
+-static_assert(sizeof(safariListFind) == sizeof(safariListRepl), "patch size mismatch");
+-static_assert(sizeof(safariFillFind) == sizeof(safariFillRepl), "patch size mismatch");
+-
+-static UserPatcher::BinaryModPatch safariPatches[] {
+-	{CPU_TYPE_X86_64, 0, safariListFind, safariListRepl, sizeof(safariListFind), 0, 1, UserPatcher::FileSegment::SegmentTextText, 1},
+-	{CPU_TYPE_X86_64, 0, safariFillFind, safariFillRepl, sizeof(safariFillFind), 0, 1, UserPatcher::FileSegment::SegmentTextText, 1},
+-};
++// ---- Safari completion list backdrop (-wex-safarilist), per-process data write ----
++// Safari 27.2 on macOS 26.7.2: CompletionListWindow and AutoFillCompletionWindow return YES from
++// +shouldUseGlassBackdropView, so -[RoundedWindow _createBackdropViewWithContentRect:] creates an NSGlassView, which
++// draws nothing with Liquid Glass (SwiftUI/Solarium) turned off: the list is transparent. Safari is signed with
++// library validation, so no user-space dylib can be inserted.
++//
++// The first version rewrote the two methods in __TEXT through the Lilu page patcher. That modifies the shared file
++// page (UBC) of a compressed file on the sealed App cryptex: when another page of the same 16 KiB verification block
++// is paged in later, APFS hashes the block including the resident patched page, verification fails (EBADMSG) and the
++// faulting thread gets SIGBUS after endless retries (Safari hang + crash, 2026-11-17 09:10).
++//
++// This version leaves the file pages alone. Both senders of shouldUseGlassBackdropView in Safari.framework
++// (0xa8cab, 0x531f89) load the same selector reference, __DATA_CONST 0xc39aa0, send it to a class and test al.
++// After dyld and objc have fixed up the image, the reference is replaced, in the Safari process only, with the
++// uniqued "isProxy" selector taken from Safari's own reference at 0xc21468: +[NSObject isProxy] returns NO.
++// The write goes through a copy-on-write private page of that process (data, not code: no code signing effect).
++// Everything is checked first: process name, LC_UUID of the loaded framework, both selector strings.
++namespace SafariList {
+ 
+-// The framework lives in the App cryptex; both spellings of its path are registered.
+-static UserPatcher::BinaryModInfo safariMods[] {
+-	{"/System/Volumes/Preboot/Cryptexes/App/System/Library/StagedFrameworks/Safari/Safari.framework/Versions/A/Safari", safariPatches, arrsize(safariPatches)},
+-	{"/System/Cryptexes/App/System/Library/StagedFrameworks/Safari/Safari.framework/Versions/A/Safari", safariPatches, arrsize(safariPatches)},
++static constexpr const char *execSuffix {"/Safari.app/Contents/MacOS/Safari"};
++static constexpr const char *imageSuffix {"/Safari.framework/Versions/A/Safari"};
++static constexpr uint8_t imageUuid[16] {0x89, 0xAC, 0x72, 0x1C, 0xB5, 0x77, 0x3C, 0xB8, 0x9B, 0x32, 0x7C, 0xED, 0x7D, 0x5E, 0x75, 0xBF};
++static constexpr uint64_t glassSelRef {0xc39aa0};  // shouldUseGlassBackdropView
++static constexpr uint64_t proxySelRef {0xc21468};  // isProxy
++static constexpr uint64_t imageSize {0xc94000};    // __TEXT .. __DATA_DIRTY end (vmaddr 0 based)
++static constexpr uint32_t tickMs {100};
++static constexpr uint32_t maxTicks {300};          // 30 s per launch
++static constexpr size_t jobCount {4};
++
++using t_procTask = task_t (*)(proc_t);
++using t_getTaskMapRef = vm_map_t (*)(task_t);
++using t_vmMapDeallocate = void (*)(vm_map_t);
++using t_vmMapReadUser = kern_return_t (*)(vm_map_t, mach_vm_address_t, void *, vm_size_t);
++using t_vmMapWriteUser = kern_return_t (*)(vm_map_t, const void *, mach_vm_address_t, vm_size_t);
++using t_machVmProtect = kern_return_t (*)(vm_map_t, mach_vm_address_t, mach_vm_size_t, boolean_t, vm_prot_t);
++using t_taskImageInfo = mach_vm_address_t (*)(task_t);
++
++static t_procTask procTask {nullptr};
++static t_getTaskMapRef getTaskMapRef {nullptr};
++static t_vmMapDeallocate vmMapDeallocate {nullptr};
++static t_vmMapReadUser vmMapReadUser {nullptr};
++static t_vmMapWriteUser vmMapWriteUser {nullptr};
++static t_machVmProtect machVmProtect {nullptr};
++static t_taskImageInfo taskImageInfo {nullptr};
++
++struct Job {
++	_Atomic(int) pid;
++	uint32_t ticks;
++	bool ready;
++	thread_call_t call;
+ };
++static Job jobs[jobCount] {};
++static kauth_listener_t listener {nullptr};
++static int cookie {0};
++
++// debug.wexsafarilist: number of Safari launches patched this boot.
++// debug.wexsafarilist_last: 1 patched, 2 already patched, -1 framework UUID differs, -2 timeout, -3 protect failed,
++// -4 write failed, -5 read-back differs, -6 no free job slot, -7 selector strings differ.
++static int statPatched {0};
++static int statLast {0};
++SYSCTL_INT(_debug, OID_AUTO, wexsafarilist, CTLFLAG_RD | CTLFLAG_LOCKED, &statPatched, 0, "Safari launches with the completion list backdrop selector redirected");
++SYSCTL_INT(_debug, OID_AUTO, wexsafarilist_last, CTLFLAG_RD | CTLFLAG_LOCKED, &statLast, 0, "last result: 1 patched, 2 already, <0 error");
++
++static bool endsWith(const char *s, size_t len, const char *suffix) {
++	size_t n = strlen(suffix);
++	return len >= n && !strncmp(s + len - n, suffix, n);
++}
++
++static bool readUser(vm_map_t map, mach_vm_address_t addr, void *dst, size_t size) {
++	return addr != 0 && vmMapReadUser(map, addr, dst, size) == KERN_SUCCESS;
++}
++
++// Reads a NUL-terminated string of up to size - 1 bytes without touching the page after its end.
++static bool readUserString(vm_map_t map, mach_vm_address_t addr, char *buf, size_t size) {
++	memset(buf, 0, size);
++	size_t done = 0;
++	while (done < size - 1) {
++		size_t chunk = PAGE_SIZE - ((addr + done) & PAGE_MASK);
++		if (chunk > size - 1 - done)
++			chunk = size - 1 - done;
++		if (!readUser(map, addr + done, buf + done, chunk))
++			return false;
++		if (memchr(buf + done, 0, chunk))
++			return true;
++		done += chunk;
++	}
++	return true;
++}
++
++static bool userStringIs(vm_map_t map, mach_vm_address_t addr, const char *want) {
++	char buf[32];
++	size_t n = strlen(want) + 1;
++	return n <= sizeof(buf) && readUserString(map, addr, buf, sizeof(buf)) && !memcmp(buf, want, n);
++}
++
++// Load address of Safari.framework from dyld_all_image_infos (version, count, infoArray), 0 if not there yet.
++static mach_vm_address_t findImage(vm_map_t map, mach_vm_address_t infos) {
++	struct { uint32_t version, count; uint64_t array; } head {};
++	if (!readUser(map, infos, &head, sizeof(head)) || head.array == 0 || head.count == 0 || head.count > 4096)
++		return 0;
++	struct Entry { uint64_t load, path, date; };
++	Entry batch[32];
++	for (uint32_t i = 0; i < head.count; i += arrsize(batch)) {
++		uint32_t n = head.count - i < arrsize(batch) ? head.count - i : (uint32_t)arrsize(batch);
++		if (!readUser(map, head.array + i * sizeof(Entry), batch, n * sizeof(Entry)))
++			return 0;
++		for (uint32_t k = 0; k < n; k++) {
++			char path[160];
++			if (!batch[k].load || !readUserString(map, batch[k].path, path, sizeof(path)))
++				continue;
++			if (endsWith(path, strnlen(path, sizeof(path)), imageSuffix))
++				return batch[k].load;
++		}
++	}
++	return 0;
++}
++
++static bool uuidMatches(vm_map_t map, mach_vm_address_t base) {
++	struct { uint32_t magic, cputype, cpusubtype, filetype, ncmds, sizeofcmds, flags, reserved; } mh {};
++	if (!readUser(map, base, &mh, sizeof(mh)) || mh.magic != 0xfeedfacf || mh.cputype != CPU_TYPE_X86_64 ||
++		mh.sizeofcmds == 0 || mh.sizeofcmds > 0x10000)
++		return false;
++	auto cmds = static_cast<uint8_t *>(IOMalloc(mh.sizeofcmds));
++	if (!cmds)
++		return false;
++	bool ok = false;
++	if (readUser(map, base + sizeof(mh), cmds, mh.sizeofcmds)) {
++		for (uint32_t off = 0, i = 0; i < mh.ncmds && off + 8 <= mh.sizeofcmds; i++) {
++			uint32_t cmd = *reinterpret_cast<uint32_t *>(cmds + off), size = *reinterpret_cast<uint32_t *>(cmds + off + 4);
++			if (size < 8 || off + size > mh.sizeofcmds)
++				break;
++			if (cmd == 0x1b /* LC_UUID */ && size >= 24) {
++				ok = !memcmp(cmds + off + 8, imageUuid, sizeof(imageUuid));
++				break;
++			}
++			off += size;
++		}
++	}
++	IOFree(cmds, mh.sizeofcmds);
++	return ok;
++}
+ 
++// 0 done, 1 try again later, <0 give up (statLast code).
++static int tryPatch(Job &job, vm_map_t map, mach_vm_address_t infos) {
++	mach_vm_address_t base = findImage(map, infos);
++	if (!base)
++		return 1;
++	if (!uuidMatches(map, base))
++		return -1;
++
++	uint64_t glass = 0, proxy = 0;
++	if (!readUser(map, base + glassSelRef, &glass, sizeof(glass)) || !readUser(map, base + proxySelRef, &proxy, sizeof(proxy)))
++		return 1;
++	// Until the selectors are uniqued, isProxy points into Safari's own __objc_methname.
++	if (proxy == 0 || (proxy >= base && proxy < base + imageSize))
++		return 1;
++	if (!userStringIs(map, proxy, "isProxy"))
++		return 1;
++	if (glass == proxy)
++		return 2;
++	if (!userStringIs(map, glass, "shouldUseGlassBackdropView"))
++		return job.ticks + 1 >= maxTicks ? -7 : 1;
++	// Seen ready once: give objc one more tick to finish the image before writing.
++	if (!job.ready) {
++		job.ready = true;
++		return 1;
++	}
++
++	mach_vm_address_t slot = base + glassSelRef, page = slot & ~(mach_vm_address_t)PAGE_MASK;
++	if (machVmProtect(map, page, PAGE_SIZE, FALSE, VM_PROT_READ | VM_PROT_WRITE) != KERN_SUCCESS)
++		return -3;
++	kern_return_t wr = vmMapWriteUser(map, &proxy, slot, sizeof(proxy));
++	kern_return_t pr = machVmProtect(map, page, PAGE_SIZE, FALSE, VM_PROT_READ);
++	if (wr != KERN_SUCCESS)
++		return -4;
++	uint64_t check = 0;
++	if (!readUser(map, slot, &check, sizeof(check)) || check != proxy)
++		return -5;
++	SYSLOG_COND(pr != KERN_SUCCESS, "wex", "safarilist: restoring read-only protection failed (%d)", pr);
++	return 0;
++}
++
++static void tick(thread_call_param_t param0, thread_call_param_t) {
++	auto &job = *static_cast<Job *>(param0);
++	int pid = atomic_load(&job.pid);
++	int res = -2;
++	proc_t p = pid > 0 ? proc_find(pid) : nullptr;
++	if (p) {
++		char name[32] {};
++		proc_name(pid, name, sizeof(name));
++		task_t task = !strcmp(name, "Safari") ? procTask(p) : nullptr;
++		vm_map_t map = task ? getTaskMapRef(task) : nullptr;
++		mach_vm_address_t infos = task ? taskImageInfo(task) : 0;
++		res = map ? (infos ? tryPatch(job, map, infos) : 1) : -2;
++		if (map)
++			vmMapDeallocate(map);
++		proc_rele(p);
++	}
++
++	if (res == 1 && ++job.ticks < maxTicks) {
++		uint64_t deadline;
++		clock_interval_to_deadline(tickMs, kMillisecondScale, &deadline);
++		thread_call_enter_delayed(job.call, deadline);
++		return;
++	}
++
++	if (res == 1)
++		res = -2;
++	statLast = res == 0 ? 1 : res;
++	if (res == 0)
++		statPatched++;
++	SYSLOG("wex", "safarilist: pid %d %s (%d) after %u ticks", pid, res == 0 ? "patched" : res == 2 ? "already patched" : "not patched", res, job.ticks);
++	atomic_store(&job.pid, 0);
++}
++
++static int execListener(kauth_cred_t, void *idata, kauth_action_t action, uintptr_t, uintptr_t arg1, uintptr_t, uintptr_t) {
++	if (idata != &cookie || action != KAUTH_FILEOP_EXEC || !arg1)
++		return KAUTH_RESULT_DEFER;
++	auto path = reinterpret_cast<const char *>(arg1);
++	if (!endsWith(path, strlen(path), execSuffix))
++		return KAUTH_RESULT_DEFER;
++
++	int pid = proc_selfpid();
++	for (auto &job : jobs) {
++		int expected = 0;
++		if (atomic_compare_exchange_strong(&job.pid, &expected, pid)) {
++			job.ticks = 0;
++			job.ready = false;
++			uint64_t deadline;
++			clock_interval_to_deadline(tickMs, kMillisecondScale, &deadline);
++			thread_call_enter_delayed(job.call, deadline);
++			return KAUTH_RESULT_DEFER;
++		}
++	}
++	statLast = -6;
++	return KAUTH_RESULT_DEFER;
++}
++
++static void onPatcher(void *, KernelPatcher &patcher) {
++	auto solve = [&patcher](const char *name) {
++		auto addr = patcher.solveSymbol(KernelPatcher::KernelID, name);
++		if (!addr) {
++			SYSLOG("wex", "safarilist: %s not found", name);
++			patcher.clearError();
++		}
++		return addr;
++	};
++	procTask = reinterpret_cast<t_procTask>(solve("_proc_task"));
++	getTaskMapRef = reinterpret_cast<t_getTaskMapRef>(solve("_get_task_map_reference"));
++	vmMapDeallocate = reinterpret_cast<t_vmMapDeallocate>(solve("_vm_map_deallocate"));
++	vmMapReadUser = reinterpret_cast<t_vmMapReadUser>(solve("_vm_map_read_user"));
++	vmMapWriteUser = reinterpret_cast<t_vmMapWriteUser>(solve("_vm_map_write_user"));
++	machVmProtect = reinterpret_cast<t_machVmProtect>(solve("_mach_vm_protect"));
++	taskImageInfo = reinterpret_cast<t_taskImageInfo>(solve("_task_get_all_image_info_addr"));
++	if (!procTask || !getTaskMapRef || !vmMapDeallocate || !vmMapReadUser || !vmMapWriteUser || !machVmProtect || !taskImageInfo)
++		return;
++
++	for (auto &job : jobs) {
++		if (!(job.call = thread_call_allocate(tick, &job))) {
++			SYSLOG("wex", "safarilist: thread_call_allocate failed");
++			return;
++		}
++	}
++	sysctl_register_oid(&sysctl__debug_wexsafarilist);
++	sysctl_register_oid(&sysctl__debug_wexsafarilist_last);
++	listener = kauth_listen_scope(KAUTH_SCOPE_FILEOP, execListener, &cookie);
++	SYSLOG("wex", "safarilist: %s", listener ? "watching Safari launches (per-process selector redirect)" : "kauth_listen_scope failed");
++}
++
++}
++
+ static inline void registerSafariListIfRequested() {
+ 	if (!checkKernelArgument("-wex-safarilist"))
+ 		return;
+-
+-	auto err = lilu.onProcLoad(nullptr, 0, nullptr, nullptr, safariMods, arrsize(safariMods));
+-	if (err == LiluAPI::Error::NoError)
+-		SYSLOG("wex", "userpatch: registered the Safari completion list backdrop mod");
+-	else
+-		SYSLOG("wex", "userpatch: failed to register the Safari completion list backdrop mod (%d)", err);
++	lilu.onPatcherLoadForce(SafariList::onPatcher);
+ }
+ 
+ }

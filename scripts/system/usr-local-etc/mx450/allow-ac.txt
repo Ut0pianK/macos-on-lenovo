@@ -1,0 +1,12 @@
+# rung 3: everyone; -Name denies
+# (2026-11-14) 늘 떠 있는 앱은 충전 중에도 MX450 을 받지 않는다: 한번 잡으면 배터리로 바꿔도 놓지 않아 MX450 이 못 꺼짐(유휴 5W → 10W)
+-ClaudeUsageBar
+-BatteryEstimate
+-iStat Menus Status
+-iStat Menus
+-iStatMenusDaemon
+-Terminal
+-Sona
+-KakaoTalk
+*
+!WindowServer

@@ -1,0 +1,152 @@
+--- kern_userpatch.hpp.safaricow-v2	2026-11-17 10:59:53
++++ src/WhateverXe/kern_userpatch.hpp	2026-11-17 10:59:58
+@@ -276,8 +276,15 @@
+ static constexpr const char *execSuffix {"/Safari.app/Contents/MacOS/Safari"};
+ static constexpr const char *imageSuffix {"/Safari.framework/Versions/A/Safari"};
+ static constexpr uint8_t imageUuid[16] {0x89, 0xAC, 0x72, 0x1C, 0xB5, 0x77, 0x3C, 0xB8, 0x9B, 0x32, 0x7C, 0xED, 0x7D, 0x5E, 0x75, 0xBF};
+-static constexpr uint64_t glassSelRef {0xc39aa0};  // shouldUseGlassBackdropView
+-static constexpr uint64_t proxySelRef {0xc21468};  // isProxy
++// +shouldUseGlassBackdropView = YES lives only in the metaclass method lists of these two classes; their
++// superclass RoundedWindow returns NO. Relative method lists take their method names from the selector
++// reference slots, so redirecting the selref renames the YES method instead of bypassing it. Instead the
++// metaclass class_ro_t baseMethods pointer (in __DATA_CONST) is cleared, so the classes inherit NO.
++struct Target { const char *name; uint64_t ro; uint64_t methods; uint64_t meta; };
++static constexpr Target targets[] {
++	{"CompletionListWindow", 0xc19e98, 0x80efd0, 0xc921f8},
++	{"AutoFillCompletionWindow", 0xba2e10, 0x812b68, 0xc69750},
++};
+ static constexpr uint64_t imageSize {0xc94000};    // __TEXT .. __DATA_DIRTY end (vmaddr 0 based)
+ static constexpr uint32_t tickMs {100};
+ static constexpr uint32_t maxTicks {300};          // 30 s per launch
+@@ -311,10 +318,10 @@
+ 
+ // debug.wexsafarilist: number of Safari launches patched this boot.
+ // debug.wexsafarilist_last: 1 patched, 2 already patched, -1 framework UUID differs, -2 timeout, -3 protect failed,
+-// -4 write failed, -5 read-back differs, -6 no free job slot, -7 selector strings differ.
++// -4 write failed, -5 read-back differs, -6 no free job slot, -7 class data differs.
+ static int statPatched {0};
+ static int statLast {0};
+-SYSCTL_INT(_debug, OID_AUTO, wexsafarilist, CTLFLAG_RD | CTLFLAG_LOCKED, &statPatched, 0, "Safari launches with the completion list backdrop selector redirected");
++SYSCTL_INT(_debug, OID_AUTO, wexsafarilist, CTLFLAG_RD | CTLFLAG_LOCKED, &statPatched, 0, "Safari launches with the completion window glass class methods removed");
+ SYSCTL_INT(_debug, OID_AUTO, wexsafarilist_last, CTLFLAG_RD | CTLFLAG_LOCKED, &statLast, 0, "last result: 1 patched, 2 already, <0 error");
+ 
+ static bool endsWith(const char *s, size_t len, const char *suffix) {
+@@ -396,43 +403,58 @@
+ 	return ok;
+ }
+ 
+-// 0 done, 1 try again later, <0 give up (statLast code).
+-static int tryPatch(Job &job, vm_map_t map, mach_vm_address_t infos) {
++// 0 done, 1 try again later, <0 give up (statLast code). realized gets a bit per class already realized by objc.
++static int tryPatch(Job &job, vm_map_t map, mach_vm_address_t infos, uint32_t &realized) {
+ 	mach_vm_address_t base = findImage(map, infos);
+ 	if (!base)
+ 		return 1;
+ 	if (!uuidMatches(map, base))
+ 		return -1;
+ 
+-	uint64_t glass = 0, proxy = 0;
+-	if (!readUser(map, base + glassSelRef, &glass, sizeof(glass)) || !readUser(map, base + proxySelRef, &proxy, sizeof(proxy)))
+-		return 1;
+-	// Until the selectors are uniqued, isProxy points into Safari's own __objc_methname.
+-	if (proxy == 0 || (proxy >= base && proxy < base + imageSize))
+-		return 1;
+-	if (!userStringIs(map, proxy, "isProxy"))
+-		return 1;
+-	if (glass == proxy)
++	uint64_t methods[arrsize(targets)] {};
++	size_t cleared = 0;
++	for (size_t i = 0; i < arrsize(targets); i++) {
++		auto &t = targets[i];
++		uint64_t name = 0;
++		if (!readUser(map, base + t.ro + 0x20, &methods[i], sizeof(uint64_t)) || !readUser(map, base + t.ro + 0x18, &name, sizeof(name)))
++			return 1;
++		if (methods[i] == 0) {
++			cleared++;
++			continue;
++		}
++		// Until dyld has applied the fixups the fields hold chained-fixup encodings.
++		if (methods[i] != base + t.methods || name < base || name >= base + imageSize)
++			return job.ticks + 1 >= maxTicks ? -7 : 1;
++		if (!userStringIs(map, name, t.name))
++			return -7;
++	}
++	if (cleared == arrsize(targets))
+ 		return 2;
+-	if (!userStringIs(map, glass, "shouldUseGlassBackdropView"))
+-		return job.ticks + 1 >= maxTicks ? -7 : 1;
+-	// Seen ready once: give objc one more tick to finish the image before writing.
+ 	if (!job.ready) {
+ 		job.ready = true;
+ 		return 1;
+ 	}
+ 
+-	mach_vm_address_t slot = base + glassSelRef, page = slot & ~(mach_vm_address_t)PAGE_MASK;
+-	if (machVmProtect(map, page, PAGE_SIZE, FALSE, VM_PROT_READ | VM_PROT_WRITE) != KERN_SUCCESS)
+-		return -3;
+-	kern_return_t wr = vmMapWriteUser(map, &proxy, slot, sizeof(proxy));
+-	kern_return_t pr = machVmProtect(map, page, PAGE_SIZE, FALSE, VM_PROT_READ);
+-	if (wr != KERN_SUCCESS)
+-		return -4;
+-	uint64_t check = 0;
+-	if (!readUser(map, slot, &check, sizeof(check)) || check != proxy)
+-		return -5;
+-	SYSLOG_COND(pr != KERN_SUCCESS, "wex", "safarilist: restoring read-only protection failed (%d)", pr);
++	for (size_t i = 0; i < arrsize(targets); i++) {
++		auto &t = targets[i];
++		if (methods[i] == 0)
++			continue;
++		uint64_t bits = 0;
++		if (readUser(map, base + t.meta + 0x20, &bits, sizeof(bits)) && (bits & 0x00007ffffffffff8ULL) != base + t.ro)
++			realized |= 1U << i;
++		mach_vm_address_t slot = base + t.ro + 0x20, page = slot & ~(mach_vm_address_t)PAGE_MASK;
++		if (machVmProtect(map, page, PAGE_SIZE, FALSE, VM_PROT_READ | VM_PROT_WRITE) != KERN_SUCCESS)
++			return -3;
++		const uint64_t zero = 0;
++		kern_return_t wr = vmMapWriteUser(map, &zero, slot, sizeof(zero));
++		kern_return_t pr = machVmProtect(map, page, PAGE_SIZE, FALSE, VM_PROT_READ);
++		if (wr != KERN_SUCCESS)
++			return -4;
++		uint64_t check = 1;
++		if (!readUser(map, slot, &check, sizeof(check)) || check != 0)
++			return -5;
++		SYSLOG_COND(pr != KERN_SUCCESS, "wex", "safarilist: restoring read-only protection failed (%d)", pr);
++	}
+ 	return 0;
+ }
+ 
+@@ -440,6 +462,7 @@
+ 	auto &job = *static_cast<Job *>(param0);
+ 	int pid = atomic_load(&job.pid);
+ 	int res = -2;
++	uint32_t realized = 0;
+ 	proc_t p = pid > 0 ? proc_find(pid) : nullptr;
+ 	if (p) {
+ 		char name[32] {};
+@@ -447,7 +470,7 @@
+ 		task_t task = !strcmp(name, "Safari") ? procTask(p) : nullptr;
+ 		vm_map_t map = task ? getTaskMapRef(task) : nullptr;
+ 		mach_vm_address_t infos = task ? taskImageInfo(task) : 0;
+-		res = map ? (infos ? tryPatch(job, map, infos) : 1) : -2;
++		res = map ? (infos ? tryPatch(job, map, infos, realized) : 1) : -2;
+ 		if (map)
+ 			vmMapDeallocate(map);
+ 		proc_rele(p);
+@@ -465,7 +488,7 @@
+ 	statLast = res == 0 ? 1 : res;
+ 	if (res == 0)
+ 		statPatched++;
+-	SYSLOG("wex", "safarilist: pid %d %s (%d) after %u ticks", pid, res == 0 ? "patched" : res == 2 ? "already patched" : "not patched", res, job.ticks);
++	SYSLOG("wex", "safarilist: pid %d %s (%d) after %u ticks, realized 0x%x", pid, res == 0 ? "patched" : res == 2 ? "already patched" : "not patched", res, job.ticks, realized);
+ 	atomic_store(&job.pid, 0);
+ }
+ 
+@@ -520,7 +543,7 @@
+ 	sysctl_register_oid(&sysctl__debug_wexsafarilist);
+ 	sysctl_register_oid(&sysctl__debug_wexsafarilist_last);
+ 	listener = kauth_listen_scope(KAUTH_SCOPE_FILEOP, execListener, &cookie);
+-	SYSLOG("wex", "safarilist: %s", listener ? "watching Safari launches (per-process selector redirect)" : "kauth_listen_scope failed");
++	SYSLOG("wex", "safarilist: %s", listener ? "watching Safari launches (per-process class_ro baseMethods clear)" : "kauth_listen_scope failed");
+ }
+ 
+ }

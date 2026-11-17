@@ -1,0 +1,14 @@
+#!/bin/sh
+CONF=/usr/local/etc/charge-limit.conf
+case "$1" in
+    '') ;;
+    off|full|100) echo 100 > "$CONF" ;;
+    *[!0-9]*) echo "사용법: charge-limit [61~99 | off]" >&2; exit 64 ;;
+    *) if [ "$1" -lt 61 ] || [ "$1" -gt 100 ]; then echo "61~100 사이 값만 가능합니다(펌웨어 보존 모드 하한이 약 60%)." >&2; exit 64; fi
+       echo "$1" > "$CONF" ;;
+esac
+l=$(cat "$CONF" 2>/dev/null)
+[ "$l" = 100 ] && l="없음" || l="${l}%"
+echo "상한: $l / 보존 모드: $(/usr/local/bin/conservation-mode status) / $(pmset -g batt | grep -Eo '[0-9]+%; [^;]+')"
+[ -n "$1" ] && echo "(최대 30초 안에 반영됩니다)"
+exit 0

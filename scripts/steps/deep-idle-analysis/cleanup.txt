@@ -1,0 +1,7 @@
+# 2026-11-14 20:12:08
+전체 백업: /Users/user/EFI-backup-2026-11-14-201208 ( 86M)
+백업 검증: config·WhateverXe 해시 일치 (WhateverXe 5f520f0f)
+EFI 사용량(전): 87Mi / 197Mi
+EFI 안 backup-before-* 34개를 /Users/user/EFI-보관/EFI안-backup-before-2026-11-14-201208 로 옮김 (남김: backup-before-depop)
+EFI 사용량(후): 46Mi / 197Mi
+/usr/local/libexec 옛 파일 35개를 /Users/user/EFI-보관/libexec-2026-11-14-201208 로 옮김. 남은 것: authdb-relax-restore.sh authdb-relax.sh charge-limit.sh lid-shutdown.sh mx450-power-policy.sh step68-depop.sh sudo-nopasswd-expire.sh turbo-ac.sh 

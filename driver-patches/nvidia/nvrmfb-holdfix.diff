@@ -1,0 +1,16 @@
+--- /Users/user/nvidia-trial/upstream/v2.9-src/kexts/NVRMFB/fb/nvrm-fb.cpp	2026-11-11 19:02:09
++++ NVRMFB/fb/nvrm-fb.cpp	2026-11-12 09:47:35
+@@ -1165,7 +1165,12 @@
+         FBLOG("declareEventInterest ok (dpy-changed | dynamic-dpy-connected | flip-occurred)");
+     if (gNDpy < 0) {
+         NvU32 n = 0; NvKmsKapiDisplay handles[NVKMS_KAPI_MAX_CONNECTORS * 2];
+-        if (!fKms->getDisplays(fDev, &n, NULL) || n == 0) { FBLOG("getDisplays: none"); return false; }
++        if (!fKms->getDisplays(fDev, &n, NULL) || n == 0) {
++            // holdfix: a GPU with no display connector at all (a muxless laptop GPU) stopped here without publishing
++            // connected-displays, so NVRM auto-go never learned that no head will come and held the boot for 20 s + 10 s.
++            if (getProvider()) getProvider()->setProperty("connected-displays", 0ULL, 32);
++            FBLOG("getDisplays: none (connected-displays 0 published)"); return false;
++        }
+         if (n > sizeof handles / sizeof handles[0]) n = sizeof handles / sizeof handles[0];
+         if (!fKms->getDisplays(fDev, &n, handles)) return false;
+         FBLOG("getDisplays: %u handle(s); this GPU has %u heads and %u connectors",

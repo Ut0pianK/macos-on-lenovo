@@ -1,0 +1,17 @@
+TSC 간격: 291282026059 (120 초)
+  PC2    5.42 %
+  PC3    2.64 %
+  PC6    0.01 %
+  PC7    1.10 %
+  PC8   66.68 %
+  PC9    0.00 %
+  PC10   0.00 %
+PKG_CST_CONFIG_CONTROL 0xE2 = 0x74008008  (패키지 C-state 한계 코드 8, 잠금 예)
+EPB(0x1B0) = 0  (0=성능 … 15=절전)
+HWP: PM_ENABLE=1  REQUEST min=4 max=24 desired=8 EPP=0x80 (0x00=성능 … 0xFF=절전)
+HWP_CAP: highest=42 guaranteed=24 efficient=18 lowest=1
+패키지   1.51 W
+코어(PP0)  0.29 W
+그래픽(PP1)  0.01 W
+현재 배수 PERF_STATUS = 24 (x100MHz), 이 코어 C6/C7 증가 -1401334/212137765182
+MISC_ENABLE 0x1A0 = 0x850089 (터보 꺼짐 bit38=0, EIST bit16=1)

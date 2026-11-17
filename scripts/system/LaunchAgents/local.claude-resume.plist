@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key><string>local.claude-resume</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/open</string><string>-a</string><string>Terminal</string>
+        <string>/Users/user/.claude/resume/claude-resume.command</string>
+    </array>
+    <key>RunAtLoad</key><true/>
+    <key>LimitLoadToSessionType</key><string>Aqua</string>
+</dict>
+</plist>

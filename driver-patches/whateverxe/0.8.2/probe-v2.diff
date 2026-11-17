@@ -1,0 +1,158 @@
+--- ../kern_xe.cpp.pre-probe3	2026-11-17 12:19:49
++++ WhateverXe/kern_xe.cpp	2026-11-17 12:21:27
+@@ -1575,8 +1575,12 @@
+ // after a "root" privilege check that the kernel task passes. So the sync request goes through setProperties.
+ // At most 4 writes per boot. debug.wexhangtest=1 writes "wex-hang-test" the same way; reading it gives the last result
+ // (0 none, 1 written and synced, 2 setProperty failed, 3 no /options, 4 written but the sync request failed).
+-static constexpr uint32_t WexHangNvMax = 4, WexHangNvVals = 46;
+-static uint32_t wexHangNvBuf[4 + WexHangNvMax * (1 + WexHangNvVals)] {0x4E584557, 1, 0, WexHangNvVals};
++// Version 2 (2026-11-17): the ring/execlist/CSB block is read from the engine that owns the stuck stamp index (it was
++// always the render engine, useless for the video-engine stall of 08:21), and six values are appended: eventTimeout
++// reason, engine (IGHwCsType), engine MMIO base, GEN12 RING_FAULT_REG 0xCEC4, FAULT_TLB_DATA0/1 0xCEB8/0xCEBC.
++// Three records keep the variable under 640 bytes.
++static constexpr uint32_t WexHangNvMax = 3, WexHangNvVals = 52;
++static uint32_t wexHangNvBuf[4 + WexHangNvMax * (1 + WexHangNvVals)] {0x4E584557, 2, 0, WexHangNvVals};
+ static volatile uint32_t wexHangNvReserved, wexHangNvCount;
+ static thread_call_t wexHangNvCall;
+ static int wexHangNvResult;
+@@ -1591,7 +1595,7 @@
+ // mode: param0 (set at allocation) or param1; 0 hang records, 1 test record, 2 orphan records.
+ static void wexHangNvFlush(thread_call_param_t mode0, thread_call_param_t mode1) {
+ 	const uintptr_t mode = mode0 ? reinterpret_cast<uintptr_t>(mode0) : reinterpret_cast<uintptr_t>(mode1);
+-	const bool test = mode == 1;
++	const bool test = mode == 1 || mode == 3;	// 3: test record of full hang-record size
+ 	auto opts = IORegistryEntry::fromPath("/options", gIODTPlane);
+ 	if (!opts) { wexHangNvResult = 3; return; }
+ 	uint32_t cnt = __atomic_load_n(&wexHangNvCount, __ATOMIC_ACQUIRE); if (cnt > WexHangNvMax) cnt = WexHangNvMax;
+@@ -1600,7 +1604,9 @@
+ 	clock_sec_t sec = 0; clock_usec_t usec = 0; clock_get_calendar_microtime(&sec, &usec);
+ 	const uint32_t probe[] {0x54584557, static_cast<uint32_t>(sec)};
+ 	wexHangNvBuf[2] = cnt; wexOrphanNvBuf[2] = ocnt;
+-	auto data = test ? OSData::withBytes(probe, sizeof(probe))
++	static uint32_t big[4 + WexHangNvMax * (1 + WexHangNvVals)];
++	if (mode == 3) { memcpy(big, wexHangNvBuf, 16); big[0] = 0x54584557; big[1] = static_cast<uint32_t>(sec); big[2] = WexHangNvMax; }
++	auto data = mode == 3 ? OSData::withBytes(big, sizeof(big)) : test ? OSData::withBytes(probe, sizeof(probe))
+ 		: mode == 2 ? OSData::withBytes(wexOrphanNvBuf, static_cast<unsigned int>((4 + ocnt * WexOrphanNvVals) * sizeof(uint32_t)))
+ 		: OSData::withBytes(wexHangNvBuf, static_cast<unsigned int>((4 + cnt * (1 + WexHangNvVals)) * sizeof(uint32_t)));
+ 	bool ok = false;
+@@ -1638,10 +1644,10 @@
+ 	int v = wexHangNvResult;
+ 	const int err = sysctl_handle_int(oidp, &v, 0, req);
+ 	if (err || !req->newptr) return err;
+-	if (v == 1 && wexHangNvCall) { wexHangNvResult = 0; thread_call_enter1(wexHangNvCall, reinterpret_cast<thread_call_param_t>(1)); }
++	if ((v == 1 || v == 2) && wexHangNvCall) { wexHangNvResult = 0; thread_call_enter1(wexHangNvCall, reinterpret_cast<thread_call_param_t>(v == 2 ? 3 : 1)); }
+ 	return 0;
+ }
+-SYSCTL_PROC(_debug, OID_AUTO, wexhangtest, CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_LOCKED, nullptr, 0, wexHangTestSysctl, "I", "write 1: store a test record in NVRAM variable wex-hang-test; reads the last NVRAM write result");
++SYSCTL_PROC(_debug, OID_AUTO, wexhangtest, CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_LOCKED, nullptr, 0, wexHangTestSysctl, "I", "write 1 (8 bytes) or 2 (full hang-record size): store a test record in NVRAM variable wex-hang-test; reads the last NVRAM write result");
+ 
+ // Orphan stamp completion (2026-11-17, on unless -wex-noorphanfix). The freezes of 2026-11-16/17 all ended with
+ // IGAccelEventMachine::eventTimeout answering NULL for reason 4: the stuck stamp's engine made no context switch for
+@@ -1748,58 +1754,78 @@
+ 
+ static mach_vm_address_t orgTGLEventTimeout;
+ static volatile uint32_t wexHangProbeCount;
+-static void *wrapTGLEventTimeout(void *em, int idx) {
+-	uint64_t t0 = 0; clock_get_uptime(&t0);
+-	// eventTimeout reports its reason only through IntelAccelerator::encodeDebugInfo; catch it for this thread.
+-	WexEtSlot *slot = nullptr;
+-	if (wexOrphanReady) {
+-		void *self = current_thread();
+-		for (auto &s : wexEtSlots) {
+-			void *expected = nullptr;
+-			if (__atomic_compare_exchange_n(&s.th, &expected, self, false, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)) { s.reason = -1; slot = &s; break; }
+-		}
+-	}
+-	void *ret = FunctionCast(wrapTGLEventTimeout, orgTGLEventTimeout)(em, idx);
+-	int reason = -1;
+-	if (slot) { reason = slot->reason; __atomic_store_n(&slot->th, nullptr, __ATOMIC_RELEASE); }
+-	if (ret) return ret;
+-	if (reason == 4 && em) wexOrphanCheck(em, idx);
++// Engine of a stamp index (IG_STAMP_INDEX_TO_HWCS_LUT, verified at route time when the orphan fix is ready) and its
++// MMIO base (kIGHwCsDesc +0x15 = engine base + 0x230: RCS 0x2000, CCS 0x1a000, BCS 0x22000, VCS0 0x1c0000,
++// VCS2 0x1d0000, VECS0 0x1c8000).
++static uint32_t wexStampEngine(int idx) {
++	if (idx < 0 || idx >= 64) return 0;
++	return idx < 24 ? 0 : idx < 32 ? 1 : idx < 36 ? 2 : idx < 44 ? 3 : idx < 52 ? 4 : idx < 60 ? 5 : 6;
++}
++static uint32_t wexEngineBase(uint32_t cs) {
++	static const uint32_t base[] {0x2000, 0x1a000, 0x22000, 0x1c0000, 0x1d0000, 0x1c8000};
++	return cs < arrsize(base) ? base[cs] : 0x2000;
++}
++static void wexHangProbe(int idx, int reason, uint64_t t0) {
+ 	const uint32_t n = __atomic_add_fetch(&wexHangProbeCount, 1, __ATOMIC_RELAXED);
+-	if (n > 32) return ret;
++	if (n > 32) return;
+ 	uint64_t t1 = 0, ns = 0; clock_get_uptime(&t1); absolutetime_to_nanoseconds(t1 - t0, &ns);
+ 	auto rd = [](uint32_t off) -> uint32_t { auto r = wexPsr1Reg(off); return r ? *r : 0xDEADDEADU; };
+-	// render ring (base 0x2000) and execlists
+-	static const uint32_t ring[] {0x2034, 0x2030, 0x2038, 0x203C, 0x2074, 0x205C, 0x2064, 0x2068, 0x206C, 0x209C,
+-		0x2180, 0x2234, 0x2238, 0x23A0};
++	const uint32_t cs = wexStampEngine(idx), eb = wexEngineBase(cs);
++	// ring and execlists of that engine (offsets from the engine base)
++	static const uint32_t ring[] {0x34, 0x30, 0x38, 0x3C, 0x74, 0x5C, 0x64, 0x68, 0x6C, 0x9C, 0x180, 0x234, 0x238, 0x3A0};
+ 	// context status buffer, 6 entries x (lo, hi)
+-	static const uint32_t csb[] {0x2370, 0x2374, 0x2378, 0x237C, 0x2380, 0x2384, 0x2388, 0x238C, 0x2390, 0x2394, 0x2398, 0x239C};
++	static const uint32_t csb[] {0x370, 0x374, 0x378, 0x37C, 0x380, 0x384, 0x388, 0x38C, 0x390, 0x394, 0x398, 0x39C};
+ 	// display: DERRMR, DE pipe A IIR/IMR, PSR_CTL/STATUS/DEBUG, DC_STATE_EN, PW status, TRANS_CONF_A, frame counter A,
+ 	// PLANE_CTL_1_A, PLANE_SURF_1_A, PLANE_SURFLIVE_1_A
+ 	static const uint32_t disp[] {0x44050, 0x44408, 0x44404, 0x60800, 0x60840, 0x60860, 0x45504, 0x45400, 0x70008,
+ 		0x70040, 0x70180, 0x7019C, 0x701AC};
+-	uint32_t r[arrsize(ring)], c[arrsize(csb)], d[arrsize(disp)];
+-	for (size_t i = 0; i < arrsize(ring); i++) r[i] = rd(ring[i]);
+-	for (size_t i = 0; i < arrsize(csb); i++) c[i] = rd(csb[i]);
++	// GEN12 RING_FAULT_REG, FAULT_TLB_DATA0, FAULT_TLB_DATA1
++	static const uint32_t fault[] {0xCEC4, 0xCEB8, 0xCEBC};
++	uint32_t r[arrsize(ring)], c[arrsize(csb)], d[arrsize(disp)], f[arrsize(fault)];
++	for (size_t i = 0; i < arrsize(ring); i++) r[i] = rd(eb + ring[i]);
++	for (size_t i = 0; i < arrsize(csb); i++) c[i] = rd(eb + csb[i]);
+ 	for (size_t i = 0; i < arrsize(disp); i++) d[i] = rd(disp[i]);
++	for (size_t i = 0; i < arrsize(fault); i++) f[i] = rd(fault[i]);
+ 	IOSleep(20);
+-	const uint32_t acthd2 = rd(0x2074), frm2 = rd(0x70040), psr2 = rd(0x60840);
+-	IOLog("WEXHANG %u idx=%d wait_ms=%llu psr1phase=%u | ring head=%08x tail=%08x start=%08x ctl=%08x acthd=%08x:%08x ipeir=%08x ipehr=%08x instdone=%08x mimode=%08x ccid=%08x els=%08x:%08x csbptr=%08x\n",
+-		n, idx, ns / 1000000ULL, wexPsr1Phase, r[0], r[1], r[2], r[3], r[5], r[4], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[13]);
++	const uint32_t acthd2 = rd(eb + 0x74), frm2 = rd(0x70040), psr2 = rd(0x60840);
++	IOLog("WEXHANG %u idx=%d reason=%d cs=%u base=%x wait_ms=%llu psr1phase=%u | ring head=%08x tail=%08x start=%08x ctl=%08x acthd=%08x:%08x ipeir=%08x ipehr=%08x instdone=%08x mimode=%08x ccid=%08x els=%08x:%08x csbptr=%08x fault=%08x tlb=%08x:%08x\n",
++		n, idx, reason, cs, eb, ns / 1000000ULL, wexPsr1Phase, r[0], r[1], r[2], r[3], r[5], r[4], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[13],
++		f[0], f[2], f[1]);
+ 	IOLog("WEXHANG %u csb %08x:%08x %08x:%08x %08x:%08x %08x:%08x %08x:%08x %08x:%08x\n", n,
+ 		c[1], c[0], c[3], c[2], c[5], c[4], c[7], c[6], c[9], c[8], c[11], c[10]);
+ 	IOLog("WEXHANG %u disp derrmr=%08x pipeA_iir=%08x imr=%08x psr_ctl=%08x psr_st=%08x->%08x psr_dbg=%08x dc_en=%08x pw=%08x trans=%08x frm=%08x->%08x plane_ctl=%08x surf=%08x surflive=%08x acthd2=%08x\n",
+ 		n, d[0], d[1], d[2], d[3], d[4], psr2, d[5], d[6], d[7], d[8], d[9], frm2, d[10], d[11], d[12], acthd2);
+-	uint32_t pub[4 + arrsize(ring) + arrsize(csb) + arrsize(disp) + 3];
++	uint32_t pub[WexHangNvVals];
+ 	size_t k = 0;
+ 	pub[k++] = 0x47484557; pub[k++] = n; pub[k++] = (uint32_t)idx; pub[k++] = (uint32_t)(ns / 1000000ULL);
+ 	for (auto v : r) pub[k++] = v;
+ 	for (auto v : c) pub[k++] = v;
+ 	for (auto v : d) pub[k++] = v;
+ 	pub[k++] = acthd2; pub[k++] = frm2; pub[k++] = psr2;
+-	if (auto data = OSData::withBytes(pub, sizeof(pub))) {
++	pub[k++] = (uint32_t)reason; pub[k++] = cs; pub[k++] = eb;
++	for (auto v : f) pub[k++] = v;
++	if (auto data = OSData::withBytes(pub, static_cast<unsigned int>(k * sizeof(uint32_t)))) {
+ 		IORegistryEntry::getRegistryRoot()->setProperty("WhateverXeHangProbe", data); data->release();
+ 	}
+ 	wexHangNvAdd(pub, k);
++}
++static void *wrapTGLEventTimeout(void *em, int idx) {
++	uint64_t t0 = 0; clock_get_uptime(&t0);
++	// eventTimeout reports its reason only through IntelAccelerator::encodeDebugInfo; catch it for this thread.
++	WexEtSlot *slot = nullptr;
++	if (wexOrphanReady) {
++		void *self = current_thread();
++		for (auto &s : wexEtSlots) {
++			void *expected = nullptr;
++			if (__atomic_compare_exchange_n(&s.th, &expected, self, false, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)) { s.reason = -1; slot = &s; break; }
++		}
++	}
++	void *ret = FunctionCast(wrapTGLEventTimeout, orgTGLEventTimeout)(em, idx);
++	int reason = -1;
++	if (slot) { reason = slot->reason; __atomic_store_n(&slot->th, nullptr, __ATOMIC_RELEASE); }
++	if (ret) return ret;
++	wexHangProbe(idx, reason, t0);			// the stuck state first, before any recovery below changes it
++	if (reason == 4 && em) wexOrphanCheck(em, idx);
+ 	return ret;
+ }
+ 
